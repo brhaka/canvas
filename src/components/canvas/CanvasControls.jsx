@@ -27,12 +27,6 @@ export function CanvasControls({
       />
 
       <div className="flex-1">
-        <Slider
-          value={[brushSize]}
-          onValueChange={(value) => setBrushSize(value[0])}
-          max={20}
-          step={1}
-        />
 
         <div className="flex gap-2">
           <Button
