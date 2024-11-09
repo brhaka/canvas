@@ -10,24 +10,33 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Share, Copy, Check } from "lucide-react";
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * ShareButton Component
  * Provides a dialog with QR code and copy link functionality for sharing URLs
- * @param {string} url - Optional URL to share. Falls back to current window location
+ * Generates a unique UUID for each share instance
+ * @param {string} url - Base URL to share. Falls back to current window location
  */
 const ShareButton = ({ url }) => {
   // Track the copied state for button feedback
   const [copied, setCopied] = useState(false);
   
+  // Generate a unique sharing URL with UUID
+  // Using useMemo to keep the same UUID during re-renders
+  const sharingUrl = useMemo(() => {
+    const baseUrl = url || 'localhost/canvas';
+    const uuid = uuidv4();
+    return `${baseUrl}/${uuid}`;
+  }, []); // Empty dependency array means this only runs once when component mounts
+  
   /**
-   * Handles copying the URL to clipboard and shows feedback
+   * Handles copying the unique sharing URL to clipboard and shows feedback
    * Reverts button state after 2 seconds
    */
   const handleCopy = async () => {
-    const linkToCopy = url || window.location.href;
-    await navigator.clipboard.writeText(linkToCopy);
+    await navigator.clipboard.writeText(sharingUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -50,7 +59,7 @@ const ShareButton = ({ url }) => {
           {/* QR Code container with styling */}
           <div className="bg-white/50 backdrop-blur-sm p-8 rounded-xl border shadow-lg">
             <QRCodeSVG 
-              value={url || window.location.href} 
+              value={sharingUrl} 
               size={256}
               className="h-auto w-full max-w-[256px]"
             />
