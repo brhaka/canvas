@@ -134,7 +134,7 @@ export default function ColorPicker({
   }, [drawGradient, drawSlider])
 
   return (
-    <div className={cn("flex flex-col gap-2 mt-2 bg-white rounded-xl w-full", className)}>
+    <div className={cn("flex flex-col gap-2 mt-2 bg-white rounded-md w-full", className)}>
       {/* Main color picker */}
       <div
         ref={refs.container}
@@ -144,7 +144,7 @@ export default function ColorPicker({
       >
         <canvas
           ref={refs.canvas}
-          className="w-full h-full cursor-crosshair rounded-lg"
+          className="w-full h-full cursor-crosshair rounded-md"
           onMouseDown={(e) => handleMouseEvents.onMouseDown(e, false)}
           onMouseMove={(e) => handleMouseEvents.onMouseMove(e, false)}
         />
@@ -154,7 +154,7 @@ export default function ColorPicker({
       <div className="relative w-full h-6">
         <canvas
           ref={refs.slider}
-          className="w-full h-full rounded-full cursor-pointer"
+          className="w-full h-full rounded-md cursor-pointer"
           onMouseDown={(e) => handleMouseEvents.onMouseDown(e, true)}
           onMouseMove={(e) => handleMouseEvents.onMouseMove(e, true)}
           onMouseUp={handleMouseEvents.onMouseUp}
@@ -163,7 +163,7 @@ export default function ColorPicker({
       </div>
 
       {/* Hex color input */}
-      <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-2">
+      <div className="flex items-center gap-2 bg-gray-100 rounded-md p-2">
         <input
           type="text"
           value={color.toUpperCase()}

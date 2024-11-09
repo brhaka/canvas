@@ -101,7 +101,7 @@ export default function ColorSelector({
       <HoverCardTrigger asChild>
         <div
           className={cn(
-            "w-[35px] h-[35px] rounded-lg cursor-pointer border border-input hover:opacity-90 transition-opacity",
+            "w-[35px] h-[35px] rounded-md cursor-pointer border border-input hover:opacity-90 transition-opacity",
             className
           )}
           style={{ backgroundColor: localColor.hex }}
