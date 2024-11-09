@@ -117,8 +117,8 @@ export default function ColorSelector({
           {showColorPicker ? (
             <div className="p-4">
               <Button
-                variant="ghost"
-                className="mb-2 w-full justify-start"
+                variant="outline"
+                className="mb-2 w-full justify-start focus:outline-none hover:border-transparent"
                 onClick={() => setShowColorPicker(false)}
               >
                 ← Back
@@ -146,9 +146,9 @@ export default function ColorSelector({
               <div className="flex items-center justify-center gap-2 mb-3">
                 <p className="text-lg font-semibold">Colorful Suggestions</p>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
-                  className="h-6 w-6 p-0"
+                  className="h-6 w-6 p-0 focus:outline-none hover:border-transparent"
                   onClick={regenerateSuggestions}
                 >
                   <RefreshCw className="h-4 w-4" />
