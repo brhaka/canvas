@@ -1,11 +1,7 @@
 import { Link } from "react-router-dom";
-import ColorSelector from "@/components/color-selector";
-import { useStateTogether } from "react-together";
 import ShareButton from '@/components/share-button.jsx';
 
 export default function Home() {
-  const [color, setColor] = useStateTogether("brushColor", { hex: "#FFFFFF", name: "White" });
-
   return (
     <div className="container min-h-screen">
       <main className="flex flex-col items-center justify-center gap-6 py-8 px-4 sm:px-6 lg:px-8">
@@ -28,14 +24,6 @@ export default function Home() {
             Open a canvas
           </Link>
           <ShareButton />
-        </div>
-
-        {/* Color selector */}
-        <div className="w-full max-w-sm">
-          <ColorSelector
-            color={color}
-            onChange={setColor}
-          />
         </div>
       </main>
     </div>

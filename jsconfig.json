@@ -3,6 +3,9 @@
     "references": [
         {
             "path": "./jsconfig.app.json"
+        },
+        {
+            "path": "./jsconfig.app.json"
         }
     ],
     "compilerOptions": {

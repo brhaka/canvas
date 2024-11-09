@@ -187,16 +187,17 @@ button:focus-visible {
 
   /* Container utilities */
   .container {
-    @apply w-full max-w-[95%] mx-auto px-4;
-    @apply sm:max-w-[540px] sm:px-6;
-    @apply md:max-w-[720px];
+    @apply w-full max-w-[95%] mx-auto px-3;
+    @apply sm:max-w-[540px] sm:px-4;
+    @apply md:max-w-[720px] md:px-6;
     @apply lg:max-w-[960px] lg:px-8;
     @apply xl:max-w-[1140px];
+    @apply 2xl:max-w-[1320px];
   }
 
   /* Responsive spacing utilities */
   .section {
-    @apply py-8 sm:py-12 md:py-16 lg:py-20;
+    @apply py-6 sm:py-8 md:py-12 lg:py-16 xl:py-20;
   }
 
   /* Form elements */
@@ -215,12 +216,12 @@ button:focus-visible {
   }
 
   input, button, select, textarea {
-    font-size: 16px; /* Prevents zoom on iOS */
+    font-size: 16px;
   }
 
   /* Improve touch targets */
   button, a {
-    @apply min-h-[44px] min-w-[44px];
+    @apply min-h-[40px] min-w-[40px];
     @apply flex items-center justify-center;
   }
 }
@@ -240,3 +241,22 @@ button:focus-visible {
 }
 
 /* Custom CSS starts here */
+
+/* Add new breakpoint for larger screens */
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1400px;
+  }
+  
+  h1 {
+    @apply text-6xl;
+  }
+  
+  h2 {
+    @apply text-5xl;
+  }
+  
+  h3 {
+    @apply text-4xl;
+  }
+}

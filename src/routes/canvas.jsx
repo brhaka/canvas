@@ -1,10 +1,24 @@
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import CollaborativeCanvas from "@/components/canvas/Canvas";
+import { ReactTogether } from 'react-together'
 
 export default function Canvas() {
+  const { uuid } = useParams();
+
   return (
     <>
-      <p>One day, there will be a canvas here.</p>
+    <ReactTogether
+      sessionParams={{
+        appId: import.meta.env['VITE_APP_ID'],
+        apiKey: import.meta.env['VITE_API_KEY'],
+        name: uuid,
+        password: uuid,
+      }}
+    >
+
+      <CollaborativeCanvas />
       <Link to="/">Go back to home</Link>
+    </ReactTogether>
     </>
   );
 }
