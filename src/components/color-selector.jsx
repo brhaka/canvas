@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import colors from "@/lib/colors.json"
 import ColorPicker from "@/components/color-picker"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Pipette, RefreshCw } from "lucide-react"
 
 // Utility functions
@@ -89,6 +89,10 @@ export default function ColorSelector({
     onChange(newHex)
   }
 
+  useEffect(() => {
+    handleColorChange(initialColor.hex)
+  }, [])
+
   return (
     <HoverCard
       openDelay={0}
@@ -97,7 +101,7 @@ export default function ColorSelector({
       <HoverCardTrigger asChild>
         <div
           className={cn(
-            "w-[35px] h-[35px] rounded-lg cursor-pointer border border-input hover:opacity-90 transition-opacity",
+            "w-[35px] h-[35px] rounded-md cursor-pointer border border-input hover:opacity-90 transition-opacity",
             className
           )}
           style={{ backgroundColor: localColor.hex }}
