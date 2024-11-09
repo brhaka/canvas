@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import colors from "@/lib/colors.json"
 import ColorPicker from "@/components/color-picker"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Pipette, RefreshCw } from "lucide-react"
 
 // Utility functions
@@ -88,6 +88,10 @@ export default function ColorSelector({
     // Only return the hex to the parent component
     onChange(newHex)
   }
+
+  useEffect(() => {
+    handleColorChange(initialColor.hex)
+  }, [])
 
   return (
     <HoverCard
