@@ -21,7 +21,7 @@ export function CanvasControls({
     <div className="flex space-x-4 items-center">
       <ColorSelector
         color={color}
-        onChange={(e) => setColor(e.target.value)}
+        onChange={setColor}
       />
 
       <div className="flex-1">

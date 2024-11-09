@@ -12,6 +12,7 @@ import App from './App'
 import Home from './routes/home'
 import ErrorPage from "./error-page";
 import Canvas from './routes/canvas'
+import SessionGenerator from './routes/session-generator'
 
 const router = createBrowserRouter([
   {
@@ -26,6 +27,10 @@ const router = createBrowserRouter([
       {
         path: "/home",
         element: <Navigate to="/" replace />,
+      },
+      {
+        path: "/canvas",
+        element: <SessionGenerator />,
       },
       {
         path: "/canvas/:uuid",

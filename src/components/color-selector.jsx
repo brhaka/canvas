@@ -58,15 +58,19 @@ function ColorButton({ color, onClick, className }) {
 }
 
 export default function ColorSelector({
-  color = null,
+  color: externalColor = null,
   onChange = () => {},
   className
 }) {
-  if (!color) {
-    color = initialColor
+  if (!externalColor) {
+    externalColor = initialColor.hex
   }
 
-  const [isHoverCardOpen, setIsHoverCardOpen] = useState(false)
+  const [localColor, setLocalColor] = useState({
+    hex: externalColor,
+    name: colors[externalColor] || externalColor
+  })
+
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [suggestedColors, setSuggestedColors] = useState(
     Array.from({ length: 9 }, () => getRandomColor())
@@ -79,7 +83,10 @@ export default function ColorSelector({
   const handleColorChange = (newHex) => {
     // Look up the color name in the colors dictionary, fallback to hex if not found
     const name = colors[newHex] || newHex
-    onChange({ hex: newHex, name })
+    // Update the internal state
+    setLocalColor({ hex: newHex, name })
+    // Only return the hex to the parent component
+    onChange(newHex)
   }
 
   return (
@@ -93,7 +100,7 @@ export default function ColorSelector({
             "w-[35px] h-[35px] rounded-lg cursor-pointer border border-input hover:opacity-90 transition-opacity",
             className
           )}
-          style={{ backgroundColor: color.hex }}
+          style={{ backgroundColor: localColor.hex }}
         />
       </HoverCardTrigger>
       <HoverCardContent
@@ -113,7 +120,7 @@ export default function ColorSelector({
                 ← Back
               </Button>
               <ColorPicker
-                color={color.hex}
+                color={localColor.hex}
                 onChange={handleColorChange}
               />
             </div>
@@ -121,7 +128,7 @@ export default function ColorSelector({
             <div className="p-4">
               <div className="flex items-center gap-2 mb-4">
                 <ColorButton
-                  color={color}
+                  color={localColor}
                   className="flex-1"
                 />
                 <Button
@@ -148,7 +155,7 @@ export default function ColorSelector({
                   <ColorButton
                     key={suggestedColor.hex}
                     color={suggestedColor}
-                    onClick={() => onChange(suggestedColor)}
+                    onClick={() => handleColorChange(suggestedColor.hex)}
                   />
                 ))}
               </div>
