@@ -4,7 +4,7 @@ import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { TOOL_TYPES } from './types'
 import ColorSelector from "@/components/color-selector";
-// import { useStateTogether } from "react-together";
+import { Paintbrush, Eraser } from "lucide-react";
 
 export function CanvasControls({
   color,
@@ -27,26 +27,38 @@ export function CanvasControls({
           onChange={(e) => setColor(e.target.value)}
         />
 
-        <Button
-          variant={activeTool === TOOL_TYPES.BRUSH ? 'default' : 'outline'}
-          onClick={() => setActiveTool(TOOL_TYPES.BRUSH)}
-        >
-          Brush
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant={activeTool === TOOL_TYPES.BRUSH ? 'default' : 'outline'}
+            onClick={() => setActiveTool(TOOL_TYPES.BRUSH)}
+            size="icon"
+            className="h-10 w-10"
+            title="Brush Tool"
+          >
+            <Paintbrush className="h-5 w-5" />
+          </Button>
 
-        <Button
-          variant={activeTool === TOOL_TYPES.ERASER ? 'default' : 'outline'}
-          onClick={() => setActiveTool(TOOL_TYPES.ERASER)}
-        >
-          Eraser
-        </Button>
+          <Button
+            variant={activeTool === TOOL_TYPES.ERASER ? 'default' : 'outline'}
+            onClick={() => setActiveTool(TOOL_TYPES.ERASER)}
+            size="icon"
+            className="h-10 w-10"
+            title="Eraser Tool"
+          >
+            <Eraser className="h-5 w-5" />
+          </Button>
 
-        <Button
-          onClick={onUndo}
-          disabled={!canUndo}
-        >
-          Undo
-        </Button>
+          {/* <Button
+            variant="outline"
+            onClick={onUndo}
+            disabled={!canUndo}
+            size="icon"
+            className="h-10 w-10"
+            title="Undo"
+          >
+            <Undo className="h-5 w-5" />
+          </Button> */}
+        </div>
       </div>
 
       <div className="space-y-2">
