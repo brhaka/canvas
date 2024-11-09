@@ -43,41 +43,52 @@ const ShareButton = ({ url }) => {
 
   return (
     <Dialog>
-      {/* Share button trigger */}
+      {/* Share button trigger - made touch-friendly */}
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon">
-          <Share className="h-4 w-4" />
+        <Button 
+          variant="outline" 
+          size="icon"
+          className="min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] lg:min-w-[48px] lg:min-h-[48px] text-primary hover:text-primary-foreground"
+        >
+          <Share className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />
         </Button>
       </DialogTrigger>
 
-      {/* Share dialog content */}
-      <DialogContent className="sm:max-w-md">
+      {/* Responsive dialog content */}
+      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-md md:max-w-lg lg:max-w-xl p-3 sm:p-4 md:p-6">
         <DialogHeader>
-          <DialogTitle>Share via QR Code</DialogTitle>
+          <DialogTitle className="text-base sm:text-lg md:text-xl lg:text-2xl text-center">
+            Share via QR Code
+          </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col items-center gap-4">
-          {/* QR Code container with styling */}
-          <div className="bg-white/50 backdrop-blur-sm p-8 rounded-xl border shadow-lg">
+        
+        <div className="flex flex-col items-center gap-3 sm:gap-4 md:gap-6">
+          {/* Responsive QR Code container */}
+          <div className="bg-white/50 backdrop-blur-sm p-3 sm:p-4 md:p-6 lg:p-8 rounded-xl border shadow-lg w-full max-w-[240px] sm:max-w-[280px] md:max-w-[320px] lg:max-w-[360px] mx-auto">
             <QRCodeSVG
               value={sharingUrl}
               size={256}
-              className="h-auto w-full max-w-[256px]"
+              className="h-auto w-full"
             />
           </div>
 
-          {/* Copy link button with success state */}
+          {/* Full-width button on mobile, auto on larger screens */}
           <Button
             variant={copied ? "success" : "outline"}
-            className={`flex gap-2 ${copied ? "bg-green-500 hover:bg-green-600 text-white" : ""}`}
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 min-h-[40px] sm:min-h-[44px] ${
+              copied ? "bg-green-500 hover:bg-green-600 text-white" : "text-foreground"
+            }`}
             onClick={handleCopy}
           >
             {copied ? (
               <>
-                <Check className="h-4 w-4" /> Copied!
+                <Check className="h-4 w-4 md:h-5 md:w-5" /> 
+                <span className="text-sm md:text-base">Copied!</span>
               </>
             ) : (
               <>
-                <Copy className="h-4 w-4" /> Copy Link
+                <Copy className="h-4 w-4 md:h-5 md:w-5" /> 
+                <span className="text-sm md:text-base">Copy Link</span>
               </>
             )}
           </Button>

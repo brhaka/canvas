@@ -130,11 +130,133 @@ button:focus-visible {
 @layer base {
   * {
     @apply border-border;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
+
+  html {
+    @apply antialiased;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
+    @apply min-h-screen overflow-x-hidden;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    min-width: 320px;
+  }
+
+  /* Responsive typography */
+  h1 {
+    @apply text-3xl sm:text-4xl md:text-5xl font-bold;
+    line-height: 1.2;
+  }
+
+  h2 {
+    @apply text-2xl sm:text-3xl md:text-4xl font-semibold;
+  }
+
+  h3 {
+    @apply text-xl sm:text-2xl md:text-3xl font-semibold;
+  }
+
+  p {
+    @apply text-sm sm:text-base;
+  }
+
+  /* Responsive links */
+  a {
+    @apply font-medium text-primary hover:text-primary/80;
+    text-decoration: inherit;
+  }
+
+  /* Responsive buttons */
+  button {
+    @apply rounded-lg border border-transparent;
+    @apply px-3 py-2 sm:px-4 sm:py-2;
+    @apply text-sm sm:text-base;
+    @apply font-medium;
+    @apply bg-primary text-primary-foreground;
+    @apply hover:bg-primary/90;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Container utilities */
+  .container {
+    @apply w-full max-w-[95%] mx-auto px-3;
+    @apply sm:max-w-[540px] sm:px-4;
+    @apply md:max-w-[720px] md:px-6;
+    @apply lg:max-w-[960px] lg:px-8;
+    @apply xl:max-w-[1140px];
+    @apply 2xl:max-w-[1320px];
+  }
+
+  /* Responsive spacing utilities */
+  .section {
+    @apply py-6 sm:py-8 md:py-12 lg:py-16 xl:py-20;
+  }
+
+  /* Form elements */
+  input, textarea, select {
+    @apply w-full px-3 py-2;
+    @apply text-sm sm:text-base;
+    @apply rounded-md border border-input;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary;
   }
 }
 
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input, button, select, textarea {
+    font-size: 16px;
+  }
+
+  /* Improve touch targets */
+  button, a {
+    @apply min-h-[40px] min-w-[40px];
+    @apply flex items-center justify-center;
+  }
+}
+
+/* Maintain dark mode support */
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
 
 /* Custom CSS starts here */
+
+/* Add new breakpoint for larger screens */
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1400px;
+  }
+  
+  h1 {
+    @apply text-6xl;
+  }
+  
+  h2 {
+    @apply text-5xl;
+  }
+  
+  h3 {
+    @apply text-4xl;
+  }
+}

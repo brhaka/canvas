@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import {
   HoverCard,
   HoverCardContent,
@@ -137,10 +138,10 @@ export default function ColorSelector({
                 />
                 <Button
                   variant="outline"
-                  className="h-[50px] aspect-square p-0 flex items-center justify-center"
+                  className="h-[50px] aspect-square p-0 flex items-center justify-center text-foreground hover:bg-accent/10"
                   onClick={() => setShowColorPicker(true)}
                 >
-                  <Pipette />
+                  <Pipette className="h-5 w-5" />
                 </Button>
               </div>
               <div className="flex items-center justify-center gap-2 mb-3">

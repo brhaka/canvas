@@ -1,7 +1,10 @@
 /* eslint-disable react/prop-types */
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
+import { debounce } from 'lodash'
 import { TOOL_TYPES } from './types'
+import { Button } from "@/components/ui/button"
+import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react" // Import icons
 
 export function CanvasDisplay({
   canvasRef,
@@ -15,24 +18,66 @@ export function CanvasDisplay({
   const [isDrawing, setIsDrawing] = useState(false)
   const [currentStroke, setCurrentStroke] = useState(null)
   const currentStrokeRef = useRef(null)
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
   const lastPointRef = useRef(null)
+  const initialSizeRef = useRef(null)
+  const [zoom, setZoom] = useState(1);
+  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 2;
+  const ZOOM_STEP = 0.1;
 
+  // Enhanced canvas resize handling
   useEffect(() => {
     const canvas = canvasRef.current
-    const setupCanvas = () => {
-      const { width, height } = canvas.getBoundingClientRect()
-      canvas.width = width
-      canvas.height = height
+    if (!canvas) return
+
+    const updateCanvasSize = () => {
+      const container = canvas.parentElement
+      const rect = container.getBoundingClientRect()
+      const dpr = window.devicePixelRatio || 1
+
+      // Set initial size reference if not set
+      if (!initialSizeRef.current) {
+        initialSizeRef.current = {
+          width: rect.width,
+          height: rect.height,
+          dpr: dpr
+        }
+      }
+
+      // Update canvas size
+      canvas.style.width = `${rect.width}px`
+      canvas.style.height = `${rect.height}px`
+      canvas.width = Math.floor(rect.width * dpr)
+      canvas.height = Math.floor(rect.height * dpr)
+
+      setCanvasSize({
+        width: rect.width,
+        height: rect.height,
+        dpr: dpr,
+        scaleX: rect.width / initialSizeRef.current.width,
+        scaleY: rect.height / initialSizeRef.current.height
+      })
     }
 
-    setupCanvas()
-    window.addEventListener('resize', setupCanvas)
-    return () => window.removeEventListener('resize', setupCanvas)
+    const handleResize = debounce(() => {
+      updateCanvasSize()
+    }, 250)
+
+    updateCanvasSize()
+    window.addEventListener('resize', handleResize)
+    window.addEventListener('orientationchange', handleResize)
+
+    return () => {
+      handleResize.cancel()
+      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('orientationchange', handleResize)
+    }
   }, [])
 
   useEffect(() => {
     renderStrokes()
-  }, [strokes])
+  }, [strokes, canvasSize])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -79,24 +124,28 @@ export function CanvasDisplay({
     context.globalCompositeOperation = 'source-over' // Reset for next operation
   }
 
-  const renderStrokes = () => {
+  const renderStrokes = useCallback(() => {
     const canvas = canvasRef.current
+    if (!canvas || !initialSizeRef.current) return
+
     const context = canvas.getContext('2d')
+    const dpr = window.devicePixelRatio || 1
+    
+    // Clear the canvas
     context.clearRect(0, 0, canvas.width, canvas.height)
+    
+    // Set up the context for the current canvas size
+    context.setTransform(1, 0, 0, 1, 0, 0)
+    context.scale(dpr * canvasSize.scaleX, dpr * canvasSize.scaleY)
 
     // Create a single offscreen canvas for all strokes
-    const offscreenCanvas = document.createElement('canvas')
-    offscreenCanvas.width = canvas.width
-    offscreenCanvas.height = canvas.height
-    const offscreenContext = offscreenCanvas.getContext('2d')
-
     // Render all strokes
     strokes.forEach(stroke => {
       if (!stroke.points || stroke.points.length < 2) return
 
       for (let i = 1; i < stroke.points.length; i++) {
         drawLine(
-          offscreenContext,
+          context,
           stroke.points[i - 1],
           stroke.points[i],
           {
@@ -107,31 +156,59 @@ export function CanvasDisplay({
         )
       }
     })
+  }, [strokes, canvasSize])
 
     // Draw current stroke if it exists
-    if (currentStrokeRef.current?.points.length >= 2) {
-      const points = currentStrokeRef.current.points
-      for (let i = 1; i < points.length; i++) {
-        drawLine(
-          offscreenContext,
-          points[i - 1],
-          points[i],
-          {
-            type: currentStrokeRef.current.type,
-            color: currentStrokeRef.current.style.color,
-            size: currentStrokeRef.current.style.size
-          }
-        )
-      }
+    // if (currentStrokeRef.current?.points.length >= 2) {
+    //   const points = currentStrokeRef.current.points
+    //   for (let i = 1; i < points.length; i++) {
+    //     drawLine(
+    //       offscreenContext,
+    //       points[i - 1],
+    //       points[i],
+    //       {
+    //         type: currentStrokeRef.current.type,
+    //         color: currentStrokeRef.current.style.color,
+    //         size: currentStrokeRef.current.style.size
+    //       }
+    //     )
+    //   }
+    // }
+
+    // // Draw the final result to the main canvas
+    // context.drawImage(offscreenCanvas, 0, 0)
+  
+  useEffect(() => {
+    renderStrokes();
+  }, [renderStrokes, canvasSize]);
+
+  // Helper function to get correct coordinates for both mouse and touch events
+  const getCoordinates = (e) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    
+    let clientX, clientY;
+    
+    if (e.touches) {
+      // Touch event
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      // Mouse event
+      clientX = e.clientX;
+      clientY = e.clientY;
     }
 
-    // Draw the final result to the main canvas
-    context.drawImage(offscreenCanvas, 0, 0)
-  }
+    // Calculate coordinates relative to initial canvas size
+    const x = ((clientX - rect.left) / canvasSize.scaleX);
+    const y = ((clientY - rect.top) / canvasSize.scaleY);
+
+    return { x, y };
+  };
 
   const startDrawing = (e) => {
-    const { offsetX, offsetY } = e.nativeEvent
-    const point = { x: offsetX, y: offsetY }
+    e.preventDefault();
+    const point = getCoordinates(e);
 
     const newStroke = {
       id: uuidv4(),
@@ -142,41 +219,41 @@ export function CanvasDisplay({
         size: brushSize
       },
       timestamp: Date.now()
-    }
+    };
 
-    setCurrentStroke(newStroke)
-    currentStrokeRef.current = newStroke
-    lastPointRef.current = point
-    setIsDrawing(true)
-  }
+    setCurrentStroke(newStroke);
+    currentStrokeRef.current = newStroke;
+    lastPointRef.current = point;
+    setIsDrawing(true);
+  };
 
   const draw = (e) => {
-    if (!isDrawing) return
-    const { offsetX, offsetY } = e.nativeEvent
-    const newPoint = { x: offsetX, y: offsetY }
+    e.preventDefault();
+    if (!isDrawing) return;
+
+    const newPoint = getCoordinates(e);
+    const lastPoint = lastPointRef.current;
 
     // Calculate distance from last point
-    const lastPoint = lastPointRef.current
     const distance = Math.sqrt(
       Math.pow(newPoint.x - lastPoint.x, 2) +
       Math.pow(newPoint.y - lastPoint.y, 2)
-    )
+    );
 
-    // Only add point if we've moved far enough (reduces points for better performance)
     if (distance > 2) {
       setCurrentStroke(prev => {
         const updatedStroke = {
           ...prev,
           points: [...prev.points, newPoint]
-        }
-        currentStrokeRef.current = updatedStroke
-        lastPointRef.current = newPoint
-        return updatedStroke
-      })
+        };
+        currentStrokeRef.current = updatedStroke;
+        lastPointRef.current = newPoint;
+        return updatedStroke;
+      });
 
-      renderStrokes()
+      renderStrokes();
     }
-  }
+  };
 
   const stopDrawing = () => {
     if (!isDrawing || !currentStroke) return
@@ -193,13 +270,77 @@ export function CanvasDisplay({
   }
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="w-full h-[500px] border border-gray-200 rounded-lg touch-none"
-      onMouseDown={startDrawing}
-      onMouseMove={draw}
-      onMouseUp={stopDrawing}
-      onMouseOut={stopDrawing}
-    />
+    <div className="relative w-full h-full">
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full touch-none select-none rounded-lg border border-gray-200"
+        style={{ 
+          touchAction: 'none',
+          display: 'block',
+          maxWidth: '100%',
+          maxHeight: '100%'
+        }}
+        onMouseDown={startDrawing}
+        onMouseMove={draw}
+        onMouseUp={stopDrawing}
+        onMouseOut={stopDrawing}
+        onTouchStart={startDrawing}
+        onTouchMove={draw}
+        onTouchEnd={stopDrawing}
+        onTouchCancel={stopDrawing}
+      />
+      
+      {/* Updated zoom controls with better mobile positioning and touch handling */}
+      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (zoom < MAX_ZOOM) {
+              setZoom(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
+            }
+          }}
+          disabled={zoom >= MAX_ZOOM}
+          className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
+          title="Zoom In"
+        >
+          <ZoomIn className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (zoom > MIN_ZOOM) {
+              setZoom(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
+            }
+          }}
+          disabled={zoom <= MIN_ZOOM}
+          className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
+          title="Zoom Out"
+        >
+          <ZoomOut className="h-4 w-4" />
+        </Button>
+        
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setZoom(1);
+          }}
+          disabled={zoom === 1}
+          className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
+          title="Reset Zoom"
+        >
+          <RotateCcw className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
   )
 }

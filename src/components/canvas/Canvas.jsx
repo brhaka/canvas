@@ -68,13 +68,15 @@ export default function CollaborativeCanvas() {
   const currentSize = activeTool === TOOL_TYPES.ERASER ? eraserSize : brushSize
 
   return (
-    <Card className="w-full max-w-3xl mx-auto">
-      <CardHeader>
-        <CardTitle>Canvas</CardTitle>
+    <Card className="fixed inset-0 w-screen h-screen overflow-hidden">
+      <CardHeader className="absolute top-0 left-0 right-0 z-10 p-3 sm:p-4 lg:p-6 h-[60px] bg-background/95 backdrop-blur-sm">
+        <CardTitle className="text-xl sm:text-2xl lg:text-3xl text-center sm:text-left">
+          Canvas
+        </CardTitle>
       </CardHeader>
 
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="h-full pt-[60px] pb-[80px] sm:pb-[100px]">
+        <div className="relative w-full h-full">
           <CanvasDisplay
             canvasRef={canvasRef}
             strokes={myStrokes}
@@ -83,21 +85,23 @@ export default function CollaborativeCanvas() {
             brushSize={currentSize}
             addStroke={addStroke}
           />
-
-          <CanvasControls
-            color={color}
-            setColor={setColor}
-            brushSize={brushSize}
-            setBrushSize={setBrushSize}
-            eraserSize={eraserSize}
-            setEraserSize={setEraserSize}
-            activeTool={activeTool}
-            setActiveTool={setActiveTool}
-            onUndo={handleUndo}
-            canUndo={(undoStack || []).length > 0}
-          />
         </div>
       </CardContent>
+
+      <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-4 bg-background/95 backdrop-blur-sm">
+        <CanvasControls
+          color={color}
+          setColor={setColor}
+          brushSize={brushSize}
+          setBrushSize={setBrushSize}
+          eraserSize={eraserSize}
+          setEraserSize={setEraserSize}
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          onUndo={handleUndo}
+          canUndo={(undoStack || []).length > 0}
+        />
+      </div>
     </Card>
   )
 }
