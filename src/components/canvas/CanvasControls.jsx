@@ -11,6 +11,8 @@ export function CanvasControls({
   setColor,
   brushSize,
   setBrushSize,
+  eraserSize,
+  setEraserSize,
   activeTool,
   setActiveTool,
   onUndo,
@@ -18,41 +20,62 @@ export function CanvasControls({
 }) {
 
   return (
-    <div className="flex space-x-4 items-center">
-      <ColorSelector
-        color={color}
-        onChange={(e) => setColor(e.target.value)}
-      />
-
-      <div className="flex-1">
-        <Slider
-          value={[brushSize]}
-          onValueChange={(value) => setBrushSize(value[0])}
-          max={20}
-          step={1}
+    <div className="space-y-4">
+      <div className="flex space-x-4 items-center">
+        <ColorSelector
+          color={color}
+          onChange={(e) => setColor(e.target.value)}
         />
+
+        <Button
+          variant={activeTool === TOOL_TYPES.BRUSH ? 'default' : 'outline'}
+          onClick={() => setActiveTool(TOOL_TYPES.BRUSH)}
+        >
+          Brush
+        </Button>
+
+        <Button
+          variant={activeTool === TOOL_TYPES.ERASER ? 'default' : 'outline'}
+          onClick={() => setActiveTool(TOOL_TYPES.ERASER)}
+        >
+          Eraser
+        </Button>
+
+        <Button
+          onClick={onUndo}
+          disabled={!canUndo}
+        >
+          Undo
+        </Button>
       </div>
 
-      <Button
-        variant={activeTool === TOOL_TYPES.BRUSH ? 'default' : 'outline'}
-        onClick={() => setActiveTool(TOOL_TYPES.BRUSH)}
-      >
-        Brush
-      </Button>
-
-      <Button
-        variant={activeTool === TOOL_TYPES.ERASER ? 'default' : 'outline'}
-        onClick={() => setActiveTool(TOOL_TYPES.ERASER)}
-      >
-        Eraser
-      </Button>
-
-      <Button
-        onClick={onUndo}
-        disabled={!canUndo}
-      >
-        Undo
-      </Button>
+      <div className="space-y-2">
+        {activeTool === TOOL_TYPES.BRUSH ? (
+          <div className="space-y-1">
+            <label className="text-sm">Brush Size: {brushSize}px</label>
+            <Slider
+              value={[brushSize]}
+              onValueChange={(value) => setBrushSize(value[0])}
+              min={1}
+              max={20}
+              step={1}
+              className="w-full"
+            />
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <label className="text-sm">Eraser Size: {eraserSize}px</label>
+            <Slider
+              value={[eraserSize]}
+              onValueChange={(value) => setEraserSize(value[0])}
+              min={1}
+              max={40}
+              step={1}
+              className="w-full"
+            />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

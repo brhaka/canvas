@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useRef } from 'react'
 import { v4 as uuidv4 } from 'uuid'
+import { TOOL_TYPES } from './types'
 
 export function CanvasDisplay({
   canvasRef,
@@ -8,8 +9,7 @@ export function CanvasDisplay({
   activeTool,
   color,
   brushSize,
-  addStroke,
-  updateUndoStack
+  addStroke
 }) {
   const [isDrawing, setIsDrawing] = useState(false)
   const [currentStroke, setCurrentStroke] = useState(null)
@@ -31,6 +31,17 @@ export function CanvasDisplay({
     renderStrokes()
   }, [userStrokes])
 
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    if (activeTool === TOOL_TYPES.ERASER) {
+      canvas.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${brushSize * 2}" height="${brushSize * 2}" viewBox="0 0 24 24" fill="%23000000"><circle cx="12" cy="12" r="10" fill="white" stroke="black" stroke-width="2"/></svg>') ${brushSize} ${brushSize}, auto`
+    } else {
+      canvas.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${brushSize * 2}" height="${brushSize * 2}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="%23${color.substring(1)}" stroke="white" stroke-width="2"/></svg>') ${brushSize} ${brushSize}, auto`
+    }
+  }, [activeTool, color, brushSize])
+
   const renderStrokes = () => {
     const canvas = canvasRef.current
     const context = canvas.getContext('2d')
@@ -39,9 +50,7 @@ export function CanvasDisplay({
     // Render strokes from all users
     Object.values(userStrokes).forEach(userStrokeList => {
       userStrokeList.forEach(stroke => {
-        if (stroke.visible !== false) {
-          drawStroke(context, stroke)
-        }
+        drawStroke(context, stroke)
       })
     })
 
@@ -58,11 +67,21 @@ export function CanvasDisplay({
     for (let i = 1; i < stroke.points.length; i++) {
       context.lineTo(stroke.points[i].x, stroke.points[i].y)
     }
-    context.strokeStyle = stroke.style.color
+
+    // Handle eraser tool
+    if (stroke.type === TOOL_TYPES.ERASER) {
+      context.globalCompositeOperation = 'destination-out'
+      context.strokeStyle = 'rgba(0,0,0,1)'
+    } else {
+      context.globalCompositeOperation = 'source-over'
+      context.strokeStyle = stroke.style.color
+    }
+
     context.lineWidth = stroke.style.size
     context.lineCap = 'round'
     context.lineJoin = 'round'
     context.stroke()
+    context.globalCompositeOperation = 'source-over' // Reset composite operation
   }
 
   const startDrawing = (e) => {
@@ -99,10 +118,12 @@ export function CanvasDisplay({
   const stopDrawing = () => {
     if (!isDrawing || !currentStroke) return
 
-    // Finalize the current stroke by adding it to the current user's strokes
+    // Add the stroke to the shared state
     addStroke(currentStroke)
-    updateUndoStack(currentStroke.id)
+
+    // Reset local state
     setCurrentStroke(null)
+    currentStrokeRef.current = null
     setIsDrawing(false)
   }
 
