@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
+import CollaborativeCanvas from "@/components/custom/canvas";
 
 export default function Canvas() {
   return (
     <>
-      <p>One day, there will be a canvas here.</p>
+      <CollaborativeCanvas />
       <Link to="/">Go back to home</Link>
     </>
   );
