@@ -38,6 +38,11 @@ export function CanvasDisplay({
         }
       }
 
+      // Calculate scale to ensure content fits
+      const scaleX = rect.width / initialSizeRef.current.width
+      const scaleY = rect.height / initialSizeRef.current.height
+      const scale = Math.min(scaleX, scaleY) * 0.9
+
       // Update canvas dimensions
       canvas.style.width = `${rect.width}px`
       canvas.style.height = `${rect.height}px`
@@ -50,8 +55,7 @@ export function CanvasDisplay({
       setCanvasSize({
         width: rect.width,
         height: rect.height,
-        scaleX: rect.width / initialSizeRef.current.width,
-        scaleY: rect.height / initialSizeRef.current.height
+        scale: scale
       })
     }
 
@@ -127,17 +131,14 @@ export function CanvasDisplay({
     const context = canvas.getContext('2d')
     const dpr = window.devicePixelRatio || 1
     
-    // Clear the canvas
     context.clearRect(0, 0, canvas.width, canvas.height)
-    
-    // Scale for retina display
     context.scale(dpr, dpr)
 
-    // Calculate scale factors
-    const scaleX = canvas.width / (initialSizeRef.current.width * dpr)
-    const scaleY = canvas.height / (initialSizeRef.current.height * dpr)
+    // Center the content
+    const offsetX = (canvas.width / dpr - initialSizeRef.current.width * canvasSize.scale) / 2
+    const offsetY = (canvas.height / dpr - initialSizeRef.current.height * canvasSize.scale) / 2
+    context.translate(offsetX, offsetY)
 
-    // Render all strokes with scaling
     Object.values(userStrokes).forEach(userStrokeList => {
       userStrokeList.forEach(stroke => {
         if (!stroke.points || stroke.points.length < 2) return
@@ -149,22 +150,25 @@ export function CanvasDisplay({
           drawLine(
             context,
             {
-              x: start.x * scaleX,
-              y: start.y * scaleY
+              x: start.x * canvasSize.scale,
+              y: start.y * canvasSize.scale
             },
             {
-              x: end.x * scaleX,
-              y: end.y * scaleY
+              x: end.x * canvasSize.scale,
+              y: end.y * canvasSize.scale
             },
             {
               type: stroke.type,
               color: stroke.style.color,
-              size: stroke.style.size * Math.min(scaleX, scaleY)
+              size: stroke.style.size * canvasSize.scale
             }
           )
         }
       })
     })
+
+    // Reset transform
+    context.setTransform(1, 0, 0, 1, 0, 0)
   }
 
   const startDrawing = (e) => {
