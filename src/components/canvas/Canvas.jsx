@@ -1,10 +1,13 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CanvasControls } from './CanvasControls'
 import { CanvasDisplay } from './CanvasDisplay'
 import { useStateTogether } from 'react-together'
 import { TOOL_TYPES } from './types'
 import _ from 'lodash'
+
+let queue = [];
+let inBetween = false;
 
 export default function CollaborativeCanvas() {
   const canvasRef = useRef(null)
@@ -16,12 +19,26 @@ export default function CollaborativeCanvas() {
   const [strokes, setStrokes] = useStateTogether("strokes", [])
   const [undoStack, setUndoStack] = useStateTogether("undoStack", [])
 
-  // Modified to work with single array of strokes
+  useEffect(() => {
+    // when this shit changes, we know we can send the second message
+    if (queue.length > 0) {
+      inBetween = true;
+      setStrokes([...strokes, ...queue])
+      queue = []
+    } else {
+      inBetween = false;
+    }
+  }, [strokes]);
+
+  // Add a stroke to the current user's strokes and update undo stack
   const addStroke = (stroke) => {
-    _.throttle(() => {
+    if (inBetween) {
+      queue.push(stroke);
+    } else {
+      inBetween = true;
       setStrokes((prev) => [...prev, stroke])
-      setUndoStack((prev) => [...prev, stroke.id])
-    }, 1000)
+    }
+    setUndoStack((prev) => [...prev, stroke.id])
   }
 
   // Modified undo to work with single array of strokes
