@@ -17,9 +17,14 @@ export default function CollaborativeCanvas() {
   const [eraserSize, setEraserSize] = useState(20)
 
   const [strokes, setStrokes] = useStateTogether("strokes", [])
+  const [myStrokes, setMyStrokes] = useState([])
   const [undoStack, setUndoStack] = useStateTogether("undoStack", [])
 
   useEffect(() => {
+    // add strokes to my strokes not removing ones that dont exist on strokes
+    const myIds = myStrokes.map(stroke => stroke.id);
+    setMyStrokes([...myStrokes, ...strokes.filter(stroke => !myIds.includes(stroke.id))]);
+
     // when this shit changes, we know we can send the second message
     if (queue.length > 0) {
       inBetween = true;
@@ -32,6 +37,8 @@ export default function CollaborativeCanvas() {
 
   // Add a stroke to the current user's strokes and update undo stack
   const addStroke = (stroke) => {
+    setMyStrokes([...myStrokes, stroke]);
+
     if (inBetween) {
       queue.push(stroke);
     } else {
@@ -70,7 +77,7 @@ export default function CollaborativeCanvas() {
         <div className="space-y-4">
           <CanvasDisplay
             canvasRef={canvasRef}
-            strokes={strokes}
+            strokes={myStrokes}
             activeTool={activeTool}
             color={color}
             brushSize={currentSize}
