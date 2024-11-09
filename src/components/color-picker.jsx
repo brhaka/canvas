@@ -18,6 +18,27 @@ export default function ColorPicker({
     container: useRef(null)
   }
 
+  const rgbToHex = useCallback((imageData) => {
+    return '#' + [imageData[0], imageData[1], imageData[2]]
+      .map(x => x.toString(16).padStart(2, '0'))
+      .join('')
+  }, [])
+
+  const findSliderPosition = useCallback((color) => {
+    const canvas = refs.slider.current;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    // Scan across the slider to find the closest matching color
+    for (let x = 0; x < canvas.width; x++) {
+      const imageData = ctx.getImageData(x, 0, 1, 1).data;
+      const hex = rgbToHex(imageData);
+      if (hex.toLowerCase() === color.toLowerCase()) {
+        return x;
+      }
+    }
+    return 0;
+  }, [rgbToHex]);
+
   const drawGradient = useCallback(() => {
     const canvas = refs.canvas.current
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
@@ -55,27 +76,38 @@ export default function ColorPicker({
   }, [state.baseColor, state.position])
 
   const drawSlider = useCallback(() => {
-    const canvas = refs.slider.current
-    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    const canvas = refs.slider.current;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0)
-    gradient.addColorStop(0, '#FF0000')
-    gradient.addColorStop(0.17, '#FF00FF')
-    gradient.addColorStop(0.33, '#0000FF')
-    gradient.addColorStop(0.5, '#00FFFF')
-    gradient.addColorStop(0.67, '#00FF00')
-    gradient.addColorStop(0.83, '#FFFF00')
-    gradient.addColorStop(1, '#FF0000')
+    // Draw rainbow gradient
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+    gradient.addColorStop(0, '#FF0000');
+    gradient.addColorStop(0.17, '#FF00FF');
+    gradient.addColorStop(0.33, '#0000FF');
+    gradient.addColorStop(0.5, '#00FFFF');
+    gradient.addColorStop(0.67, '#00FF00');
+    gradient.addColorStop(0.83, '#FFFF00');
+    gradient.addColorStop(1, '#FF0000');
 
-    ctx.fillStyle = gradient
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-  }, [])
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const rgbToHex = useCallback((imageData) => {
-    return '#' + [imageData[0], imageData[1], imageData[2]]
-      .map(x => x.toString(16).padStart(2, '0'))
-      .join('')
-  }, [])
+    // Draw marker for selected color
+    const markerX = findSliderPosition(state.baseColor);
+    ctx.beginPath();
+    ctx.moveTo(markerX, 0);
+    ctx.lineTo(markerX, canvas.height);
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(markerX, 0);
+    ctx.lineTo(markerX, canvas.height);
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }, [findSliderPosition, state.baseColor]);
 
   const handleColorSelect = useCallback((e, isSlider = false) => {
     const canvas = isSlider ? refs.slider.current : refs.canvas.current
