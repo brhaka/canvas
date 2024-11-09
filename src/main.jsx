@@ -28,7 +28,7 @@ const router = createBrowserRouter([
         element: <Navigate to="/" replace />,
       },
       {
-        path: "/canvas",
+        path: "/canvas/:uuid",
         element: <Canvas />,
       },
     ],

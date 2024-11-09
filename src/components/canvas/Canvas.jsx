@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CanvasControls } from './CanvasControls'
 import { CanvasDisplay } from './CanvasDisplay'
@@ -8,7 +8,7 @@ import { TOOL_TYPES } from './types'
 export default function CollaborativeCanvas() {
   const canvasRef = useRef(null)
   const [activeTool, setActiveTool] = useState(TOOL_TYPES.BRUSH)
-  const [color, setColor] = useState('#000000')
+  const [color, setColor] = useState({ hex: "#FFFFFF", name: "White" })
   const [brushSize, setBrushSize] = useState(5)
 
   // Initialize user-specific state for strokes, undoStack, and redoStack

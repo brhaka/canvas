@@ -3,6 +3,8 @@
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { TOOL_TYPES } from './types'
+import ColorSelector from "@/components/color-selector";
+// import { useStateTogether } from "react-together";
 
 export function CanvasControls({
   color,
@@ -14,13 +16,12 @@ export function CanvasControls({
   onUndo,
   canUndo
 }) {
+
   return (
     <div className="flex space-x-4 items-center">
-      <input
-        type="color"
-        value={color}
+      <ColorSelector
+        color={color}
         onChange={(e) => setColor(e.target.value)}
-        className="w-10 h-10"
       />
 
       <div className="flex-1">
