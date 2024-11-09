@@ -2,8 +2,6 @@ import { Link } from "react-router-dom";
 import CollaborativeCanvas from "@/components/canvas/Canvas";
 import { ReactTogether } from 'react-together'
 
-// import { v4 as uuidv4 } from 'uuid'
-
 export default function Canvas() {
   return (
     <>
@@ -14,8 +12,8 @@ export default function Canvas() {
         // Having the two args below will make React Together immediately connect
         // to a new session. Remove them if you want users to start "offline"
         // TODO: sync the sessions later with uuid
-        name: 'test',
-        password: 'test',
+        name: 'test5',
+        password: 'test5',
       }}
     >
 

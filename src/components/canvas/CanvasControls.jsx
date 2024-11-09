@@ -1,10 +1,21 @@
 /* eslint-disable react/prop-types */
+// CanvasControls.jsx
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
+import { TOOL_TYPES } from './types'
 
-export function CanvasControls({ color, setColor, brushSize, setBrushSize, clearCanvas }) {
+export function CanvasControls({
+  color,
+  setColor,
+  brushSize,
+  setBrushSize,
+  activeTool,
+  setActiveTool,
+  onUndo,
+  canUndo
+}) {
   return (
-    <div className="flex space-x-4">
+    <div className="flex space-x-4 items-center">
       <input
         type="color"
         value={color}
@@ -21,7 +32,26 @@ export function CanvasControls({ color, setColor, brushSize, setBrushSize, clear
         />
       </div>
 
-      <Button onClick={clearCanvas}>Clear Canvas</Button>
+      <Button
+        variant={activeTool === TOOL_TYPES.BRUSH ? 'default' : 'outline'}
+        onClick={() => setActiveTool(TOOL_TYPES.BRUSH)}
+      >
+        Brush
+      </Button>
+
+      <Button
+        variant={activeTool === TOOL_TYPES.ERASER ? 'default' : 'outline'}
+        onClick={() => setActiveTool(TOOL_TYPES.ERASER)}
+      >
+        Eraser
+      </Button>
+
+      <Button
+        onClick={onUndo}
+        disabled={!canUndo}
+      >
+        Undo
+      </Button>
     </div>
   )
 }
