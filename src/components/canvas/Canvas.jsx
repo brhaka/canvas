@@ -2,8 +2,9 @@ import { useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CanvasControls } from './CanvasControls'
 import { CanvasDisplay } from './CanvasDisplay'
-import { useStateTogetherWithPerUserValues } from 'react-together'
+import { useStateTogether } from 'react-together'
 import { TOOL_TYPES } from './types'
+import _ from 'lodash'
 
 export default function CollaborativeCanvas() {
   const canvasRef = useRef(null)
@@ -12,35 +13,34 @@ export default function CollaborativeCanvas() {
   const [brushSize, setBrushSize] = useState(5)
   const [eraserSize, setEraserSize] = useState(20)
 
-  // Initialize user-specific state for strokes and undo stack
-  const [userStrokes, setUserStrokes, getAllUserStrokes] = useStateTogetherWithPerUserValues("userStrokes", [])
-  const [undoStack, setUndoStack] = useStateTogetherWithPerUserValues("undoStack", [])
+  const [strokes, setStrokes] = useStateTogether("strokes", [])
+  const [undoStack, setUndoStack] = useStateTogether("undoStack", [])
 
-  // Add a stroke to the current user's strokes and update undo stack
+  // Modified to work with single array of strokes
   const addStroke = (stroke) => {
-    setUserStrokes((prev) => [...prev, stroke])
-    setUndoStack((prev) => [...prev, stroke.id])
+    _.throttle(() => {
+      setStrokes((prev) => [...prev, stroke])
+      setUndoStack((prev) => [...prev, stroke.id])
+    }, 1000)
   }
 
-  // Handle undo for the current user only
+  // Modified undo to work with single array of strokes
   const handleUndo = () => {
     setUndoStack((prev) => {
-      const currentUndoStack = prev || []
-      if (currentUndoStack.length === 0) return prev
+      if (prev.length === 0) return prev
 
-      const strokeIdToUndo = currentUndoStack[currentUndoStack.length - 1]
+      const strokeIdToUndo = prev[prev.length - 1]
 
-      // Remove the stroke from userStrokes
-      setUserStrokes((prevStrokes) =>
+      // Remove the stroke from strokes
+      setStrokes((prevStrokes) =>
         prevStrokes.filter(stroke => stroke.id !== strokeIdToUndo)
       )
 
       // Return updated undo stack
-      return currentUndoStack.slice(0, -1)
+      return prev.slice(0, -1)
     })
   }
 
-  // Update the size passed to CanvasDisplay based on active tool
   const currentSize = activeTool === TOOL_TYPES.ERASER ? eraserSize : brushSize
 
   return (
@@ -53,13 +53,13 @@ export default function CollaborativeCanvas() {
         <div className="space-y-4">
           <CanvasDisplay
             canvasRef={canvasRef}
-            userStrokes={getAllUserStrokes}
+            strokes={strokes}
             activeTool={activeTool}
             color={color}
             brushSize={currentSize}
             addStroke={addStroke}
-            updateUndoStack={addStroke}
           />
+
           <CanvasControls
             color={color}
             setColor={setColor}
