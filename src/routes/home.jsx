@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import ColorSelector from "@/components/color-selector";
 import { useStateTogether } from "react-together";
+import ShareButton from '@/components/share-button.jsx';
 
 export default function Home() {
   const [color, setColor] = useStateTogether("brushColor", { hex: "#FFFFFF", name: "White" });
@@ -13,6 +14,7 @@ export default function Home() {
         color={color}
         onChange={setColor}
       />
+			<ShareButton />
     </>
   );
 }
