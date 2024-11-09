@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { debounce } from 'lodash'
+import { TOOL_TYPES } from './types'
 
 export function CanvasDisplay({
   canvasRef,
@@ -9,53 +10,64 @@ export function CanvasDisplay({
   activeTool,
   color,
   brushSize,
-  addStroke,
-  updateUndoStack
+  addStroke
 }) {
   const [isDrawing, setIsDrawing] = useState(false)
   const [currentStroke, setCurrentStroke] = useState(null)
   const currentStrokeRef = useRef(null)
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
+  const lastPointRef = useRef(null)
+  const resizeTimeoutRef = useRef(null)
+  const initialSizeRef = useRef(null)
 
+  // Enhanced canvas resize handling
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
     const updateCanvasSize = () => {
-      const rect = canvas.getBoundingClientRect()
+      const container = canvas.parentElement
+      const rect = container.getBoundingClientRect()
       const dpr = window.devicePixelRatio || 1
-      
-      // Set display size
+
+      // Store initial size if not set
+      if (!initialSizeRef.current) {
+        initialSizeRef.current = {
+          width: rect.width,
+          height: rect.height
+        }
+      }
+
+      // Update canvas dimensions
       canvas.style.width = `${rect.width}px`
       canvas.style.height = `${rect.height}px`
-      
-      // Set actual size in memory (scaled for retina)
-      canvas.width = rect.width * dpr
-      canvas.height = rect.height * dpr
-      
-      // Scale context for retina display
+      canvas.width = Math.floor(rect.width * dpr)
+      canvas.height = Math.floor(rect.height * dpr)
+
       const context = canvas.getContext('2d')
       context.scale(dpr, dpr)
-      
-      setCanvasSize({ width: rect.width, height: rect.height })
+
+      setCanvasSize({
+        width: rect.width,
+        height: rect.height,
+        scaleX: rect.width / initialSizeRef.current.width,
+        scaleY: rect.height / initialSizeRef.current.height
+      })
     }
 
-    // Debounce resize handler
-    const debouncedResize = debounce(() => {
+    const handleResize = debounce(() => {
       updateCanvasSize()
-      renderStrokes() // Re-render strokes after resize
+      renderStrokes()
     }, 250)
 
-    // Initial setup
     updateCanvasSize()
-
-    // Add resize listener
-    window.addEventListener('resize', debouncedResize)
-    window.addEventListener('orientationchange', debouncedResize)
+    window.addEventListener('resize', handleResize)
+    window.addEventListener('orientationchange', handleResize)
 
     return () => {
-      window.removeEventListener('resize', debouncedResize)
-      window.removeEventListener('orientationchange', debouncedResize)
+      handleResize.cancel()
+      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('orientationchange', handleResize)
     }
   }, [])
 
@@ -63,80 +75,170 @@ export function CanvasDisplay({
     renderStrokes()
   }, [userStrokes, canvasSize])
 
-  const renderStrokes = () => {
+  useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const context = canvas.getContext('2d')
-    context.clearRect(0, 0, canvas.width, canvas.height)
+    if (activeTool === TOOL_TYPES.ERASER) {
+      canvas.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${brushSize * 2}" height="${brushSize * 2}" viewBox="0 0 24 24" fill="%23000000"><circle cx="12" cy="12" r="10" fill="white" stroke="black" stroke-width="2"/></svg>') ${brushSize} ${brushSize}, auto`
+    } else {
+      const colorHex = color ? color.substring(1) : '000000'
+      canvas.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${brushSize * 2}" height="${brushSize * 2}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="%23${colorHex}" stroke="white" stroke-width="2"/></svg>') ${brushSize} ${brushSize}, auto`
+    }
+  }, [activeTool, color, brushSize])
 
-    // Render strokes from all users
+  const drawLine = (context, start, end, style) => {
+    context.beginPath()
+    context.moveTo(start.x, start.y)
+
+    // Use quadratic curve to smooth the line
+    if (style.type === TOOL_TYPES.BRUSH) {
+      const controlPoint = {
+        x: (start.x + end.x) / 2,
+        y: (start.y + end.y) / 2
+      }
+      context.quadraticCurveTo(controlPoint.x, controlPoint.y, end.x, end.y)
+    } else {
+      // For eraser, use straight lines for more precise control
+      context.lineTo(end.x, end.y)
+    }
+
+    // Configure line style
+    context.lineCap = 'round'
+    context.lineJoin = 'round'
+    context.lineWidth = style.size
+
+    if (style.type === TOOL_TYPES.ERASER) {
+      context.globalCompositeOperation = 'destination-out'
+      context.strokeStyle = 'rgba(0,0,0,1)'
+    } else {
+      context.globalCompositeOperation = 'source-over'
+      context.strokeStyle = style.color
+    }
+
+    context.stroke()
+    context.globalCompositeOperation = 'source-over' // Reset for next operation
+  }
+
+  const renderStrokes = () => {
+    const canvas = canvasRef.current
+    if (!canvas || !initialSizeRef.current) return
+
+    const context = canvas.getContext('2d')
+    const dpr = window.devicePixelRatio || 1
+    
+    // Clear the canvas
+    context.clearRect(0, 0, canvas.width, canvas.height)
+    
+    // Scale for retina display
+    context.scale(dpr, dpr)
+
+    // Calculate scale factors
+    const scaleX = canvas.width / (initialSizeRef.current.width * dpr)
+    const scaleY = canvas.height / (initialSizeRef.current.height * dpr)
+
+    // Render all strokes with scaling
     Object.values(userStrokes).forEach(userStrokeList => {
       userStrokeList.forEach(stroke => {
-        if (stroke.visible !== false) {
-          drawStroke(context, stroke)
+        if (!stroke.points || stroke.points.length < 2) return
+
+        for (let i = 1; i < stroke.points.length; i++) {
+          const start = stroke.points[i - 1]
+          const end = stroke.points[i]
+          
+          drawLine(
+            context,
+            {
+              x: start.x * scaleX,
+              y: start.y * scaleY
+            },
+            {
+              x: end.x * scaleX,
+              y: end.y * scaleY
+            },
+            {
+              type: stroke.type,
+              color: stroke.style.color,
+              size: stroke.style.size * Math.min(scaleX, scaleY)
+            }
+          )
         }
       })
     })
-
-    if (currentStrokeRef.current) {
-      drawStroke(context, currentStrokeRef.current)
-    }
-  }
-
-  const drawStroke = (context, stroke) => {
-    if (stroke.points.length < 2) return
-
-    context.beginPath()
-    context.moveTo(stroke.points[0].x, stroke.points[0].y)
-    for (let i = 1; i < stroke.points.length; i++) {
-      context.lineTo(stroke.points[i].x, stroke.points[i].y)
-    }
-    context.strokeStyle = stroke.style.color
-    context.lineWidth = stroke.style.size
-    context.lineCap = 'round'
-    context.lineJoin = 'round'
-    context.stroke()
   }
 
   const startDrawing = (e) => {
     const { offsetX, offsetY } = e.nativeEvent
+    const scaleX = initialSizeRef.current.width / canvasSize.width
+    const scaleY = initialSizeRef.current.height / canvasSize.height
+    
+    const point = {
+      x: offsetX * scaleX,
+      y: offsetY * scaleY
+    }
+
     const newStroke = {
       id: uuidv4(),
       type: activeTool,
-      points: [{ x: offsetX, y: offsetY }],
-      style: { color, size: brushSize },
-      timestamp: Date.now(),
-      visible: true
+      points: [point],
+      style: {
+        color,
+        size: brushSize
+      },
+      timestamp: Date.now()
     }
 
     setCurrentStroke(newStroke)
+    currentStrokeRef.current = newStroke
+    lastPointRef.current = point
     setIsDrawing(true)
   }
 
   const draw = (e) => {
     if (!isDrawing) return
     const { offsetX, offsetY } = e.nativeEvent
+    const scaleX = initialSizeRef.current.width / canvasSize.width
+    const scaleY = initialSizeRef.current.height / canvasSize.height
+    
+    const newPoint = {
+      x: offsetX * scaleX,
+      y: offsetY * scaleY
+    }
 
-    setCurrentStroke(prev => {
-      const updatedStroke = {
-        ...prev,
-        points: [...prev.points, { x: offsetX, y: offsetY }]
-      }
-      currentStrokeRef.current = updatedStroke
-      return updatedStroke
-    })
+    // Calculate distance from last point
+    const lastPoint = lastPointRef.current
+    const distance = Math.sqrt(
+      Math.pow(newPoint.x - lastPoint.x, 2) +
+      Math.pow(newPoint.y - lastPoint.y, 2)
+    )
 
-    renderStrokes()
+    // Only add point if we've moved far enough (reduces points for better performance)
+    if (distance > 2) {
+      setCurrentStroke(prev => {
+        const updatedStroke = {
+          ...prev,
+          points: [...prev.points, newPoint]
+        }
+        currentStrokeRef.current = updatedStroke
+        lastPointRef.current = newPoint
+        return updatedStroke
+      })
+
+      renderStrokes()
+    }
   }
 
   const stopDrawing = () => {
     if (!isDrawing || !currentStroke) return
 
-    // Finalize the current stroke by adding it to the current user's strokes
-    addStroke(currentStroke)
-    updateUndoStack(currentStroke.id)
+    // Only add stroke if it has at least 2 points
+    if (currentStroke.points.length >= 2) {
+      addStroke(currentStroke)
+    }
+
     setCurrentStroke(null)
+    currentStrokeRef.current = null
+    lastPointRef.current = null
     setIsDrawing(false)
   }
 
@@ -144,7 +246,12 @@ export function CanvasDisplay({
     <canvas
       ref={canvasRef}
       className="w-full h-full touch-none select-none rounded-lg border border-gray-200"
-      style={{ touchAction: 'none' }}
+      style={{ 
+        touchAction: 'none',
+        display: 'block', // Ensure block display
+        maxWidth: '100%', // Prevent overflow
+        maxHeight: '100%' // Prevent overflow
+      }}
       onMouseDown={startDrawing}
       onMouseMove={draw}
       onMouseUp={stopDrawing}

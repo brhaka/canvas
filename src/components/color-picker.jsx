@@ -6,9 +6,11 @@ export default function ColorPicker({
   onChange = () => {},
   className
 }) {
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
   const [state, setState] = useState({
     isDragging: false,
-    baseColor: color
+    baseColor: color,
+    position: { x: 0, y: 0 }
   })
   const refs = {
     canvas: useRef(null),
@@ -38,7 +40,19 @@ export default function ColorPicker({
     // Draw transparency gradient
     ctx.fillStyle = gradientV
     ctx.fillRect(0, 0, canvas.width, canvas.height)
-  }, [state.baseColor])
+
+    // Draw position indicator
+    ctx.beginPath()
+    ctx.arc(state.position.x, state.position.y, 10, 0, 2 * Math.PI)
+    ctx.strokeStyle = 'white'
+    ctx.lineWidth = 2
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(state.position.x, state.position.y, 9, 0, 2 * Math.PI)
+    ctx.strokeStyle = 'black'
+    ctx.lineWidth = 1
+    ctx.stroke()
+  }, [state.baseColor, state.position])
 
   const drawSlider = useCallback(() => {
     const canvas = refs.slider.current
@@ -75,6 +89,7 @@ export default function ColorPicker({
     if (isSlider) {
       setState(prev => ({ ...prev, baseColor: hex }))
     } else {
+      setState(prev => ({ ...prev, position: { x, y } }))
       onChange(hex)
     }
   }, [onChange, rgbToHex])
@@ -95,12 +110,31 @@ export default function ColorPicker({
   }
 
   useEffect(() => {
-    drawGradient()
-    drawSlider()
+    const container = refs.container.current
+    const resizeObserver = new ResizeObserver(entries => {
+      const { width, height } = entries[0].contentRect
+      setDimensions({ width, height })
+
+      // Update canvas sizes
+      const canvas = refs.canvas.current
+      const slider = refs.slider.current
+
+      canvas.width = width
+      canvas.height = height
+      slider.width = width
+      slider.height = 20
+
+      // Redraw after resize
+      drawGradient()
+      drawSlider()
+    })
+
+    resizeObserver.observe(container)
+    return () => resizeObserver.disconnect()
   }, [drawGradient, drawSlider])
 
   return (
-    <div className={cn("flex flex-col gap-2 p-4 bg-white rounded-xl shadow-lg w-[300px]", className)}>
+    <div className={cn("flex flex-col gap-2 mt-2 bg-white rounded-xl w-full", className)}>
       {/* Main color picker */}
       <div
         ref={refs.container}
@@ -110,8 +144,6 @@ export default function ColorPicker({
       >
         <canvas
           ref={refs.canvas}
-          width={200}
-          height={200}
           className="w-full h-full cursor-crosshair rounded-lg"
           onMouseDown={(e) => handleMouseEvents.onMouseDown(e, false)}
           onMouseMove={(e) => handleMouseEvents.onMouseMove(e, false)}
@@ -122,8 +154,6 @@ export default function ColorPicker({
       <div className="relative w-full h-6">
         <canvas
           ref={refs.slider}
-          width={200}
-          height={20}
           className="w-full h-full rounded-full cursor-pointer"
           onMouseDown={(e) => handleMouseEvents.onMouseDown(e, true)}
           onMouseMove={(e) => handleMouseEvents.onMouseMove(e, true)}

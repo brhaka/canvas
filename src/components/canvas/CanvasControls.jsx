@@ -4,69 +4,91 @@ import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { TOOL_TYPES } from './types'
 import ColorSelector from "@/components/color-selector"
-import { Brush, Eraser, Undo } from "lucide-react"
+import { Brush, Eraser } from "lucide-react"
 
 export function CanvasControls({
   color,
   setColor,
   brushSize,
   setBrushSize,
+  eraserSize,
+  setEraserSize,
   activeTool,
   setActiveTool,
   onUndo,
   canUndo
 }) {
   return (
-    <div className="flex flex-col sm:flex-row gap-4 p-2 sm:p-4 bg-background/80 backdrop-blur-sm rounded-lg">
-      <div className="flex flex-row sm:flex-1 gap-4 items-center">
-        <div className="flex-none">
+    <div className="flex flex-col sm:flex-row gap-4 p-2 sm:p-4 rounded-lg bg-background/80 backdrop-blur-sm">
+      {/* Color Selector with button styling */}
+      <div className="flex justify-center sm:justify-start">
+        <div className="inline-flex items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground p-1">
           <ColorSelector
-            color={color}
-            onChange={(e) => setColor(e.target.value)}
-          />
-        </div>
-        
-        <div className="flex-1 min-w-[100px]">
-          <Slider
-            value={[brushSize]}
-            onValueChange={(value) => setBrushSize(value[0])}
-            max={20}
-            step={1}
-            className="w-full"
+            color={color || "#000000"}
+            onChange={setColor}
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded cursor-pointer"
           />
         </div>
       </div>
 
-      <div className="flex flex-row gap-2 sm:gap-4 justify-end items-center">
-        <Button
-          variant={activeTool === TOOL_TYPES.BRUSH ? 'default' : 'outline'}
-          onClick={() => setActiveTool(TOOL_TYPES.BRUSH)}
-          className="flex-1 sm:flex-none"
-          size="sm"
-        >
-          <Brush className="h-4 w-4 sm:mr-2" />
-          <span className="hidden sm:inline">Brush</span>
-        </Button>
+      {/* Tools Section with fixed button styling */}
+      <div className="flex justify-center sm:justify-start sm:flex-1">
+        <div className="flex gap-2 sm:gap-4">
+          <Button
+            variant="ghost"
+            onClick={() => setActiveTool(TOOL_TYPES.BRUSH)}
+            size="icon"
+            className={`h-10 w-10 sm:h-12 sm:w-12 bg-transparent hover:bg-accent/10
+              ${activeTool === TOOL_TYPES.BRUSH ? 'ring-2 ring-primary/50' : ''}`}
+            title="Brush Tool"
+          >
+            <Brush className="h-5 w-5 sm:h-6 sm:w-6 text-foreground" />
+          </Button>
 
-        <Button
-          variant={activeTool === TOOL_TYPES.ERASER ? 'default' : 'outline'}
-          onClick={() => setActiveTool(TOOL_TYPES.ERASER)}
-          className="flex-1 sm:flex-none"
-          size="sm"
-        >
-          <Eraser className="h-4 w-4 sm:mr-2" />
-          <span className="hidden sm:inline">Eraser</span>
-        </Button>
+          <Button
+            variant="ghost"
+            onClick={() => setActiveTool(TOOL_TYPES.ERASER)}
+            size="icon"
+            className={`h-10 w-10 sm:h-12 sm:w-12 bg-transparent hover:bg-accent/10
+              ${activeTool === TOOL_TYPES.ERASER ? 'ring-2 ring-primary/50' : ''}`}
+            title="Eraser Tool"
+          >
+            <Eraser className="h-5 w-5 sm:h-6 sm:w-6 text-foreground" />
+          </Button>
+        </div>
+      </div>
 
-        <Button
-          onClick={onUndo}
-          disabled={!canUndo}
-          className="flex-1 sm:flex-none"
-          size="sm"
-        >
-          <Undo className="h-4 w-4 sm:mr-2" />
-          <span className="hidden sm:inline">Undo</span>
-        </Button>
+      {/* Size Controls */}
+      <div className="w-full sm:w-[200px] md:w-[250px] lg:w-[300px]">
+        {activeTool === TOOL_TYPES.BRUSH ? (
+          <div className="space-y-1">
+            <label className="text-sm sm:text-base block text-center sm:text-left text-foreground">
+              Brush Size: {brushSize}px
+            </label>
+            <Slider
+              value={[brushSize]}
+              onValueChange={(value) => setBrushSize(value[0])}
+              min={1}
+              max={20}
+              step={1}
+              className="w-full"
+            />
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <label className="text-sm sm:text-base block text-center sm:text-left text-foreground">
+              Eraser Size: {eraserSize}px
+            </label>
+            <Slider
+              value={[eraserSize]}
+              onValueChange={(value) => setEraserSize(value[0])}
+              min={1}
+              max={40}
+              step={1}
+              className="w-full"
+            />
+          </div>
+        )}
       </div>
     </div>
   )

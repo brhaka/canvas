@@ -8,83 +8,76 @@ import { TOOL_TYPES } from './types'
 export default function CollaborativeCanvas() {
   const canvasRef = useRef(null)
   const [activeTool, setActiveTool] = useState(TOOL_TYPES.BRUSH)
-  const [color, setColor] = useState('#000000')
+  const [color, setColor] = useState(null)
   const [brushSize, setBrushSize] = useState(5)
+  const [eraserSize, setEraserSize] = useState(20)
 
-  // Initialize user-specific state for strokes, undoStack, and redoStack
+  // Initialize user-specific state for strokes and undo stack
   const [userStrokes, setUserStrokes, getAllUserStrokes] = useStateTogetherWithPerUserValues("userStrokes", [])
-  const [undoStack, setUndoStack, getAllUndoStacks] = useStateTogetherWithPerUserValues("undoStack", [])
-  const [redoStack, setRedoStack, getAllRedoStacks] = useStateTogetherWithPerUserValues("redoStack", [])
+  const [undoStack, setUndoStack] = useStateTogetherWithPerUserValues("undoStack", [])
 
-  // Add a stroke to the current user's strokes
+  // Add a stroke to the current user's strokes and update undo stack
   const addStroke = (stroke) => {
     setUserStrokes((prev) => [...prev, stroke])
-    console.log("Stroke added:", stroke)
-  }
-
-  // Update the undo stack for the current user
-  const updateUndoStack = (strokeId) => {
-    setUndoStack((prev) => [...prev, strokeId])
-    console.log("Undo stack updated:", strokeId)
+    setUndoStack((prev) => [...prev, stroke.id])
   }
 
   // Handle undo for the current user only
   const handleUndo = () => {
-    const userUndoStack = undoStack || []
-    if (userUndoStack.length === 0) return
+    setUndoStack((prev) => {
+      const currentUndoStack = prev || []
+      if (currentUndoStack.length === 0) return prev
 
-    const strokeToUndo = userUndoStack[userUndoStack.length - 1]
-    setUserStrokes((prevStrokes) =>
-      prevStrokes.map(stroke =>
-        stroke.id === strokeToUndo ? { ...stroke, visible: false } : stroke
+      const strokeIdToUndo = currentUndoStack[currentUndoStack.length - 1]
+
+      // Remove the stroke from userStrokes
+      setUserStrokes((prevStrokes) =>
+        prevStrokes.filter(stroke => stroke.id !== strokeIdToUndo)
       )
-    )
 
-    setUndoStack((prev) => prev.slice(0, -1))
-    setRedoStack((prev) => [...prev, strokeToUndo])
-    console.log("Undo performed for stroke:", strokeToUndo)
+      // Return updated undo stack
+      return currentUndoStack.slice(0, -1)
+    })
   }
 
+  // Update the size passed to CanvasDisplay based on active tool
+  const currentSize = activeTool === TOOL_TYPES.ERASER ? eraserSize : brushSize
+
   return (
-    <Card className="w-[95%] h-[90vh] max-w-[1400px] mx-auto rounded-lg sm:w-full">
-      <CardHeader className="p-3 sm:p-4 lg:p-6">
+    <Card className="fixed inset-0 w-screen h-screen overflow-hidden">
+      <CardHeader className="absolute top-0 left-0 right-0 z-10 p-3 sm:p-4 lg:p-6 h-[60px] bg-background/95 backdrop-blur-sm">
         <CardTitle className="text-xl sm:text-2xl lg:text-3xl text-center sm:text-left">
           Canvas
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="p-2 sm:p-4 lg:p-6 h-[calc(100%-4rem)]">
-        <div className="flex flex-col h-full space-y-2 sm:space-y-4">
-          {/* Canvas Display with adaptive dimensions */}
-          <div className="relative flex-grow w-full rounded-lg overflow-hidden bg-background/5">
-            <CanvasDisplay
-              canvasRef={canvasRef}
-              userStrokes={getAllUserStrokes}
-              activeTool={activeTool}
-              color={color}
-              brushSize={brushSize}
-              addStroke={addStroke}
-              updateUndoStack={updateUndoStack}
-              className="w-full h-full"
-            />
-          </div>
-
-          {/* Controls with adaptive layout */}
-          <div className="flex-none mt-2 sm:mt-4">
-            <CanvasControls
-              color={color}
-              setColor={setColor}
-              brushSize={brushSize}
-              setBrushSize={setBrushSize}
-              activeTool={activeTool}
-              setActiveTool={setActiveTool}
-              onUndo={handleUndo}
-              canUndo={undoStack.length > 0}
-              className="flex-wrap gap-2 sm:gap-3 lg:gap-4"
-            />
-          </div>
+      <CardContent className="h-full pt-[60px] pb-[80px] sm:pb-[100px]">
+        <div className="relative w-full h-full">
+          <CanvasDisplay
+            canvasRef={canvasRef}
+            userStrokes={getAllUserStrokes}
+            activeTool={activeTool}
+            color={color}
+            brushSize={currentSize}
+            addStroke={addStroke}
+          />
         </div>
       </CardContent>
+
+      <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-4 bg-background/95 backdrop-blur-sm">
+        <CanvasControls
+          color={color}
+          setColor={setColor}
+          brushSize={brushSize}
+          setBrushSize={setBrushSize}
+          eraserSize={eraserSize}
+          setEraserSize={setEraserSize}
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          onUndo={handleUndo}
+          canUndo={(undoStack || []).length > 0}
+        />
+      </div>
     </Card>
   )
 }
