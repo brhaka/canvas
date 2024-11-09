@@ -5,7 +5,7 @@ import { TOOL_TYPES } from './types'
 
 export function CanvasDisplay({
   canvasRef,
-  userStrokes,
+  strokes,
   currentUserId,
   activeTool,
   color,
@@ -32,7 +32,7 @@ export function CanvasDisplay({
 
   useEffect(() => {
     renderStrokes()
-  }, [userStrokes])
+  }, [strokes])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -84,47 +84,36 @@ export function CanvasDisplay({
     const context = canvas.getContext('2d')
     context.clearRect(0, 0, canvas.width, canvas.height)
 
-    // Create an offscreen canvas for current user's strokes
-    const userCanvas = document.createElement('canvas')
-    userCanvas.width = canvas.width
-    userCanvas.height = canvas.height
-    const userContext = userCanvas.getContext('2d')
+    // Create a single offscreen canvas for all strokes
+    const offscreenCanvas = document.createElement('canvas')
+    offscreenCanvas.width = canvas.width
+    offscreenCanvas.height = canvas.height
+    const offscreenContext = offscreenCanvas.getContext('2d')
 
-    // Create an offscreen canvas for other users' strokes
-    const othersCanvas = document.createElement('canvas')
-    othersCanvas.width = canvas.width
-    othersCanvas.height = canvas.height
-    const othersContext = othersCanvas.getContext('2d')
+    // Render all strokes
+    strokes.forEach(stroke => {
+      if (!stroke.points || stroke.points.length < 2) return
 
-    // Separate and render strokes based on user
-    Object.values(userStrokes).forEach(userStrokeList => {
-      userStrokeList.forEach(stroke => {
-        if (!stroke.points || stroke.points.length < 2) return
-
-        // Choose which context to draw on based on stroke ownership
-        const ctx = stroke.userId === currentUserId ? userContext : othersContext
-
-        for (let i = 1; i < stroke.points.length; i++) {
-          drawLine(
-            ctx,
-            stroke.points[i - 1],
-            stroke.points[i],
-            {
-              type: stroke.type,
-              color: stroke.style.color,
-              size: stroke.style.size
-            }
-          )
-        }
-      })
+      for (let i = 1; i < stroke.points.length; i++) {
+        drawLine(
+          offscreenContext,
+          stroke.points[i - 1],
+          stroke.points[i],
+          {
+            type: stroke.type,
+            color: stroke.style.color,
+            size: stroke.style.size
+          }
+        )
+      }
     })
 
-    // Draw current stroke on user canvas if it exists
+    // Draw current stroke if it exists
     if (currentStrokeRef.current?.points.length >= 2) {
       const points = currentStrokeRef.current.points
       for (let i = 1; i < points.length; i++) {
         drawLine(
-          userContext,
+          offscreenContext,
           points[i - 1],
           points[i],
           {
@@ -136,11 +125,8 @@ export function CanvasDisplay({
       }
     }
 
-    // Composite the layers onto the main canvas
-    // Other users' strokes first (cannot be erased)
-    context.drawImage(othersCanvas, 0, 0)
-    // Then current user's strokes (can be erased)
-    context.drawImage(userCanvas, 0, 0)
+    // Draw the final result to the main canvas
+    context.drawImage(offscreenCanvas, 0, 0)
   }
 
   const startDrawing = (e) => {
