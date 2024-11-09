@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CanvasControls } from './CanvasControls'
 import { CanvasDisplay } from './CanvasDisplay'
