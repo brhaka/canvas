@@ -249,6 +249,17 @@ export function CanvasDisplay({
     setIsDrawing(false);
   };
 
+  // Add global mouse up handler
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      setIsMouseDown(false);
+      stopDrawing();
+    };
+
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, []);
+
   return (
     <div className="relative w-full h-full">
       <canvas
@@ -260,19 +271,49 @@ export function CanvasDisplay({
           maxWidth: '100%',
           maxHeight: '100%'
         }}
-        onMouseDown={startDrawing}
+        onMouseDown={(e) => {
+          setIsMouseDown(true);
+          startDrawing(e);
+        }}
         onMouseMove={draw}
-        onMouseUp={stopDrawing}
+        onMouseUp={() => {
+          setIsMouseDown(false);
+          stopDrawing();
+        }}
         onMouseOut={(e) => {
           if (isDrawing) {
+            // Finalize the current stroke before leaving the canvas
+            if (currentStroke?.points.length >= 2) {
+              const simplifiedStroke = {
+                ...currentStroke,
+                points: simplifyPoints(currentStroke.points)
+              };
+              addStroke(simplifiedStroke);
+            }
             setIsDrawing(false);
+            setCurrentStroke(null);
+            currentStrokeRef.current = null;
+            lastPointRef.current = null;
           }
         }}
         onMouseEnter={(e) => {
           if (isMouseDown) {
-            setIsDrawing(true);
+            // Start a fresh stroke when re-entering
             const point = getCoordinates(e);
+            const newStroke = {
+              id: uuidv4(),
+              type: activeTool,
+              points: [point],
+              style: {
+                color,
+                size: brushSize
+              },
+              timestamp: Date.now()
+            };
+            setCurrentStroke(newStroke);
+            currentStrokeRef.current = newStroke;
             lastPointRef.current = point;
+            setIsDrawing(true);
           }
         }}
         onTouchStart={startDrawing}
