@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { Card } from "@/components/ui/card"
 import { v4 as uuidv4 } from 'uuid'
 import { debounce } from 'lodash'
 import { TOOL_TYPES } from './types'
@@ -101,11 +102,21 @@ export function CanvasDisplay({
     const canvas = canvasRef.current
     if (!canvas) return
 
+    let size = Math.max(brushSize / 2, 8);
+
     if (activeTool === TOOL_TYPES.ERASER) {
-      canvas.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${brushSize * 2}" height="${brushSize * 2}" viewBox="0 0 24 24" fill="%23000000"><circle cx="12" cy="12" r="10" fill="white" stroke="black" stroke-width="2"/></svg>') ${brushSize} ${brushSize}, auto`
+      canvas.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${
+        size * 2
+      }" height="${
+        size * 2
+      }" viewBox="0 0 24 24" fill="%23000000"><circle cx="12" cy="12" r="10" fill="white" stroke="black" stroke-width="2"/></svg>') ${size} ${size}, auto`;
     } else {
-      const colorHex = color ? color.substring(1) : '000000'
-      canvas.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${brushSize * 2}" height="${brushSize * 2}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="%23${colorHex}" stroke="white" stroke-width="2"/></svg>') ${brushSize} ${brushSize}, auto`
+      const colorHex = color ? color.substring(1) : "000000";
+      canvas.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${
+        size * 2
+      }" height="${
+        size * 2
+      }" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="%23${colorHex}" stroke="white" stroke-width="2"/></svg>') ${size} ${size}, auto`;
     }
   }, [activeTool, color, brushSize])
 
@@ -273,7 +284,81 @@ export function CanvasDisplay({
     }
   };
 
-  // Add global mouse up handler
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (!isDrawing) return;
+
+      const point = getCoordinates(e);
+      if (currentStrokeRef.current) {
+        const updatedStroke = {
+          ...currentStrokeRef.current,
+          points: [...currentStrokeRef.current.points, point],
+        };
+        setCurrentStroke(updatedStroke);
+        currentStrokeRef.current = updatedStroke;
+
+        // Draw the new line segment immediately
+        const canvas = canvasRef.current;
+        const context = canvas.getContext("2d");
+        const dpr = window.devicePixelRatio || 1;
+
+        if (lastPointRef.current) {
+          context.setTransform(dpr, 0, 0, dpr, 0, 0);
+          drawLine(context, lastPointRef.current, point, {
+            type: activeTool,
+            color: color,
+            size: brushSize,
+          });
+        }
+
+        lastPointRef.current = point;
+      }
+    },
+    [isDrawing, activeTool, color, brushSize]
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    if (isDrawing && currentStrokeRef.current) {
+      addStroke(currentStrokeRef.current);
+    }
+    setIsDrawing(false);
+    setCurrentStroke(null);
+    currentStrokeRef.current = null;
+    lastPointRef.current = null;
+  }, [isDrawing, addStroke]);
+
+  const handleMouseEnter = useCallback(
+    (e) => {
+      // Only start drawing if mouse button is still pressed (e.buttons === 1 for left button)
+      if (isMouseDown && e.buttons === 1) {
+        const point = getCoordinates(e);
+        const newStroke = {
+          id: uuidv4(),
+          type: activeTool,
+          points: [point],
+          style: {
+            color,
+            size: brushSize,
+          },
+          timestamp: Date.now(),
+        };
+        setCurrentStroke(newStroke);
+        currentStrokeRef.current = newStroke;
+        lastPointRef.current = point;
+        setIsDrawing(true);
+      } else {
+        // Reset drawing state if mouse button is not pressed
+        setIsMouseDown(false);
+        setIsDrawing(false);
+        setCurrentStroke(null);
+        currentStrokeRef.current = null;
+        lastPointRef.current = null;
+      }
+    },
+    [isMouseDown, activeTool, color, brushSize]
+  );
+
+  // Calculate initial zoom based on window size
   useEffect(() => {
     const handleGlobalMouseUp = () => {
       setIsMouseDown(false);
@@ -385,6 +470,41 @@ export function CanvasDisplay({
       className="relative w-full h-full overflow-auto"
       style={{ height: 'calc(100vh - 64px)' }}
     >
+    <div className="relative w-full h-full flex-1">
+      <Card className="fixed right-0 top-1/2 -translate-y-1/2 flex flex-col gap-4 p-2 w-[60px] items-center !rounded-r-none z-50 bg-background">
+        <Button
+          variant="ghost"
+          onClick={handleZoomIn}
+          disabled={zoom >= MAX_ZOOM}
+          size="icon"
+          className="h-10 w-10 bg-background hover:bg-accent/10 hover:border-transparent"
+          title="Zoom In"
+        >
+          <ZoomIn className="h-5 w-5 text-foreground" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          onClick={handleZoomOut}
+          disabled={zoom <= MIN_ZOOM}
+          size="icon"
+          className="h-10 w-10 bg-background hover:bg-accent/10 hover:border-transparent"
+          title="Zoom Out"
+        >
+          <ZoomOut className="h-5 w-5 text-foreground" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          onClick={handleResetZoom}
+          size="icon"
+          className="h-10 w-10 bg-background hover:bg-accent/10 hover:border-transparent"
+          title="Reset Zoom"
+        >
+          <RotateCcw className="h-5 w-5 text-foreground" />
+        </Button>
+      </Card>
+
       <div
         className="absolute h-full w-full"
         style={containerStyle}
@@ -443,6 +563,7 @@ export function CanvasDisplay({
             <RotateCcw className="h-5 w-5" />
           </Button>
         </div>
+      </div>
       </div>
     </div>
   )

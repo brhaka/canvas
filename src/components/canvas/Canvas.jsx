@@ -4,15 +4,12 @@ import { CanvasDisplay } from './CanvasDisplay'
 import { useStateTogether, useStateTogetherWithPerUserValues, useConnectedUsers } from 'react-together'
 import { TOOL_TYPES } from './types'
 import { v4 as uuidv4 } from 'uuid';
-import { UserConfigModal } from './UserConfigModal'
 import { loadCanvasState } from './canvas-states';
 import { handleStrokeUpdate, handleStateSave } from './canvasStateManager';
 import { addStroke } from './addStroke';
 import ShareButton from "@/components/share-button"
+import { getJsonSize } from './utils';
 import './canvas-styles.css'
-
-let queue = [];
-let inBetween = false;
 
 const MAX_STATE_SIZE_BYTES = 4000;
 
@@ -34,6 +31,8 @@ export default function CollaborativeCanvas({ uuid }) {
   const myUserId = uuidv4();
 
   const hasLoaded = useRef(false);
+  const inBetween = useRef(false);
+  const queue = useRef([]);
 
   // User management
   const connectedUsers = useConnectedUsers()
@@ -131,15 +130,22 @@ export default function CollaborativeCanvas({ uuid }) {
 
   // Strokes synchronization effect
   useEffect(() => {
+    console.log("strokes", strokes, strokes.length);
     const myIds = localStrokes.map(stroke => stroke.id);
     setLocalStrokes([...localStrokes, ...strokes.filter(stroke => !myIds.includes(stroke.id))]);
 
-    if (queue.length > 0) {
-      inBetween = true;
-      setStrokes(prevStrokes => [...prevStrokes, ...queue]);
-      queue = [];
+    if (queue.current.length > 0) {
+      inBetween.current = true;
+
+      const newStrokes = [];
+      while (queue.current.length > 0 && getJsonSize([...strokes, ...newStrokes, queue.current[0]]) <= MAX_STATE_SIZE_BYTES) {
+        console.log("inside loop adding strokes", getJsonSize([...strokes, ...newStrokes, queue.current[0]]))
+        newStrokes.push(queue.current.shift());
+      }
+
+      setStrokes(prev => [...prev, ...newStrokes]);
     } else {
-      inBetween = false;
+      inBetween.current = false;
     }
   }, [strokes]);
 
@@ -208,13 +214,13 @@ export default function CollaborativeCanvas({ uuid }) {
 
       <div className="pr-8 pl-8 ml-10 mr-7 scrollbar-hide">
         <CanvasDisplay
+          userId={myUserId}
           canvasRef={canvasRef}
           strokes={localStrokes}
           activeTool={activeTool}
           color={color}
           brushSize={currentSize}
           addStroke={handleAddStroke}
-          userId={userConfig.userId}
         />
       </div>
 
@@ -234,12 +240,12 @@ export default function CollaborativeCanvas({ uuid }) {
       </div>
 
       {/* User Configuration Modal */}
-      {showConfigModal && (
+      {/* {showConfigModal && (
         <UserConfigModal
           onSubmit={handleConfigSubmit}
           isHost={connectedUsers.length === 1}
         />
-      )}
+      )} */}
     </div>
   )
 }

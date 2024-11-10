@@ -26,13 +26,18 @@ export const addStroke = ({
 
     // Handle each split stroke
     splitStrokes.forEach(splitStroke => {
-      if (inBetween) {
-        queue.push(splitStroke);
+      if (getJsonSize([...strokes, splitStroke]) >= MAX_STATE_SIZE_BYTES) {
+        queue.current.push(splitStroke);
+        console.log("adding to queue 1")
+        saveState();
+      } else if (inBetween.current) {
+        queue.current.push(splitStroke);
+        console.log("adding to queue 2")
       } else {
-        inBetween = true;
+        inBetween.current = true;
         setStrokes(prev => [...prev, splitStroke]);
+        console.log("setting strokes")
       }
-      setUndoStack(prev => [...prev, splitStroke.id]);
     });
 
     return;
@@ -51,10 +56,10 @@ export const addStroke = ({
     return;
   }
 
-  if (inBetween) {
-    queue.push(newStroke);
+  if (inBetween.current) {
+    queue.current.push(newStroke);
   } else {
-    inBetween = true;
+    inBetween.current = true;
     setStrokes(prev => [...prev, newStroke]);
   }
   setUndoStack(prev => [...prev, newStroke.id]);
