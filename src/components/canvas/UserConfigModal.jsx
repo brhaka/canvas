@@ -28,7 +28,7 @@ export function UserConfigModal({ isHost, onSubmit }) {
 
     onSubmit({
       username: username.trim(),
-      limitUserSpace: isHost ? limitUserSpace : false
+      limitUserSpace: false
     })
   }
 

@@ -73,11 +73,14 @@ export default function CollaborativeCanvas({ uuid }) {
 
   // User configuration effect
   useEffect(() => {
-    console.log("connectedUsers", connectedUsers, connectedUsers.find(user => user.isYou))
+    console.log("connectedUsers", connectedUsers, userConfig.userId, isReady)
 
     if (connectedUsers.length > 0 && connectedUsers.find(user => user.isYou) && !isReady) {
+      console.log("setting ready")
       setIsReady(true)
+
       if (!userConfig.userId) {
+        console.log("showing config modal")
         setShowConfigModal(true)
       }
     }
