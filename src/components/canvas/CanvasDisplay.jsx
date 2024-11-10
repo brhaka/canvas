@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react" // Import icons
 import { simplifyPoints, smoothStroke } from './utils'
 import { drawLine } from './utils'
+import { Card } from "@/components/ui/card"
 
 export function CanvasDisplay({
   canvasRef,
@@ -272,7 +273,7 @@ export function CanvasDisplay({
   }, []);
 
   return (
-    <div className="relative w-full h-full">
+    <div className="w-full h-full">
       <canvas
         ref={canvasRef}
         className="w-full h-full touch-none select-none rounded-lg border border-gray-200"
@@ -345,11 +346,10 @@ export function CanvasDisplay({
         }}
       />
 
-      {/* Updated zoom controls with better mobile positioning and touch handling */}
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
+      {/* Zoom Controls */}
+      <Card className="absolute right-0 flex flex-col gap-2 p-1.5 w-[48px] items-center !rounded-r-none top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm">
         <Button
-          variant="outline"
-          size="icon"
+          variant="ghost"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -357,16 +357,16 @@ export function CanvasDisplay({
               setZoom(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
             }
           }}
+          size="icon"
+          className={`h-8 w-8 bg-background/80 hover:bg-accent/10 hover:border-transparent`}
           disabled={zoom >= MAX_ZOOM}
-          className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
           title="Zoom In"
         >
-          <ZoomIn className="h-4 w-4" />
+          <ZoomIn className="h-4 w-4 text-foreground" />
         </Button>
 
         <Button
-          variant="outline"
-          size="icon"
+          variant="ghost"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -374,28 +374,29 @@ export function CanvasDisplay({
               setZoom(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
             }
           }}
+          size="icon"
+          className={`h-8 w-8 bg-background/80 hover:bg-accent/10 hover:border-transparent`}
           disabled={zoom <= MIN_ZOOM}
-          className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
           title="Zoom Out"
         >
-          <ZoomOut className="h-4 w-4" />
+          <ZoomOut className="h-4 w-4 text-foreground" />
         </Button>
 
         <Button
-          variant="outline"
-          size="icon"
+          variant="ghost"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             setZoom(1);
           }}
+          size="icon"
+          className={`h-8 w-8 bg-background/80 hover:bg-accent/10 hover:border-transparent`}
           disabled={zoom === 1}
-          className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
           title="Reset Zoom"
         >
-          <RotateCcw className="h-4 w-4" />
+          <RotateCcw className="h-4 w-4 text-foreground" />
         </Button>
-      </div>
+      </Card>
     </div>
   )
 }

@@ -178,7 +178,7 @@ export default function CollaborativeCanvas({ uuid }) {
         Canvas
       </p>
 
-      <div className="pr-8 pl-8 ml-10">
+      <div className="pr-8 pl-8 ml-10 mr-7">
         <ShareButton url={`${window.location.href}`} />
         <CanvasDisplay
           canvasRef={canvasRef}
