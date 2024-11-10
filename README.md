@@ -1,4 +1,4 @@
-![Canvas](https://canvas-app.s3.eu-west-3.amazonaws.com/assets/canvas-home.gif)
+![Canvas](./canvas-home.gif)
 
 ## Technical challenges we faced regarding ReactTogether
 
