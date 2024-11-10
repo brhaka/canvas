@@ -23,8 +23,8 @@ export function CanvasDisplay({
   const lastPointRef = useRef(null)
   const initialSizeRef = useRef(null)
   const [zoom, setZoom] = useState(1);
-  const CANVAS_WIDTH = 6000;
-  const CANVAS_HEIGHT = 6000;
+  const CANVAS_WIDTH = 3000;
+  const CANVAS_HEIGHT = 1000;
   const MIN_ZOOM = 0.5;
   const MAX_ZOOM = 2;
   const ZOOM_STEP = 0.1;
