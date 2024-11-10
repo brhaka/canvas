@@ -15,9 +15,11 @@ import {
 import { Dice6 } from "lucide-react"
 import { generateRandomUsername } from '@/lib/utils'
 
-export function UserConfigModal({ isHost, onSubmit }) {
+export function UserConfigModal({ isHost, onSubmit, canvasSettings }) {
   const [username, setUsername] = useState('')
-  const [limitUserSpace, setLimitUserSpace] = useState(false)
+  const [limitUserSpace, setLimitUserSpace] = useState(
+    isHost ? false : canvasSettings?.userSpaceLimited || false
+  )
 
   const handleRandomUsername = () => {
     setUsername(generateRandomUsername())
@@ -28,7 +30,7 @@ export function UserConfigModal({ isHost, onSubmit }) {
 
     onSubmit({
       username: username.trim(),
-      limitUserSpace: false
+      limitUserSpace: isHost ? limitUserSpace : false
     })
   }
 
@@ -39,9 +41,8 @@ export function UserConfigModal({ isHost, onSubmit }) {
           <CardTitle>Welcome to Canvas</CardTitle>
           <CardDescription>
             {isHost
-              ? "Set up your canvas preferences as the host"
-              : "Join the canvas session"
-            }
+              ? "You're the first user! Set up your canvas preferences as the host"
+              : "Join the canvas session"}
           </CardDescription>
         </CardHeader>
 
@@ -78,11 +79,19 @@ export function UserConfigModal({ isHost, onSubmit }) {
                     Area may overlap for greater experience.
                   </p>
                 </div>
-                <Switch
-                  id="limitSpace"
-                  checked={limitUserSpace}
-                  onCheckedChange={setLimitUserSpace}
-                />
+                {isHost ? (
+                  <Switch
+                    id="limitSpace"
+                    checked={limitUserSpace}
+                    onCheckedChange={setLimitUserSpace}
+                  />
+                ) : (
+                  <Switch
+                    id="limitSpace"
+                    checked={canvasSettings?.userSpaceLimited}
+                    disabled
+                  />
+                )}
               </div>
             </div>
           )}
