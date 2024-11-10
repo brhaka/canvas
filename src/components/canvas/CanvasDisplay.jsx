@@ -26,9 +26,10 @@ export function CanvasDisplay({
   const CANVAS_WIDTH = 6000;
   const CANVAS_HEIGHT = 6000;
   const MIN_ZOOM = 0.5;
-  const MAX_ZOOM = 2;
-  const ZOOM_STEP = 0.1;
+  const MAX_ZOOM = 5;
+  const ZOOM_STEP = 0.2;
   const [isMouseDown, setIsMouseDown] = useState(false);
+  const [transform, setTransform] = useState({ x: 0, y: 0 });
 
   // Enhanced canvas resize handling
   useEffect(() => {
@@ -139,7 +140,7 @@ export function CanvasDisplay({
   }, [renderStrokes, canvasSize]);
 
   // Helper function to get correct coordinates for both mouse and touch events
-  const getCoordinates = (e) => {
+  const getCoordinates = useCallback((e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
@@ -163,7 +164,7 @@ export function CanvasDisplay({
     const y = (clientY - rect.top) * scaleY / dpr;
 
     return { x, y };
-  };
+  }, []);
 
   const startDrawing = (e) => {
     e.preventDefault();
@@ -267,9 +268,47 @@ export function CanvasDisplay({
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
   }, []);
 
+  // Update canvas container style to handle zoom and pan
+  const containerStyle = {
+    transform: `scale(${zoom})`,
+    transformOrigin: '0 0',
+    transition: 'transform 0.2s ease-out',
+    width: `${CANVAS_WIDTH}px`,
+    height: `${CANVAS_HEIGHT}px`,
+  };
+
+  // Add zoom handlers
+  const handleZoomIn = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setZoom(prevZoom => {
+      const newZoom = Math.min(prevZoom + ZOOM_STEP, MAX_ZOOM);
+      return newZoom;
+    });
+  }, []);
+
+  const handleZoomOut = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setZoom(prevZoom => {
+      const newZoom = Math.max(prevZoom - ZOOM_STEP, MIN_ZOOM);
+      return newZoom;
+    });
+  }, []);
+
+  const handleResetZoom = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setZoom(1);
+    setTransform({ x: 0, y: 0 });
+  }, []);
+
   return (
     <div className="relative w-full h-full overflow-auto">
-      <div className="absolute min-w-full min-h-full">
+      <div 
+        className="absolute"
+        style={containerStyle}
+      >
         <canvas
           ref={canvasRef}
           className="touch-none select-none rounded-lg border border-gray-200"
@@ -329,58 +368,42 @@ export function CanvasDisplay({
           onTouchEnd={stopDrawing}
           onTouchCancel={stopDrawing}
         />
+      </div>
 
-        {/* Updated zoom controls with better mobile positioning and touch handling */}
-        <div className="fixed right-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (zoom < MAX_ZOOM) {
-                setZoom(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
-              }
-            }}
-            disabled={zoom >= MAX_ZOOM}
-            className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
-            title="Zoom In"
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
+      {/* Update zoom control buttons to use new handlers */}
+      <div className="fixed right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-50">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleZoomIn}
+          disabled={zoom >= MAX_ZOOM}
+          className="w-10 h-10 bg-background/95 backdrop-blur-sm shadow-lg hover:bg-background"
+          title="Zoom In"
+        >
+          <ZoomIn className="h-5 w-5" />
+        </Button>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (zoom > MIN_ZOOM) {
-                setZoom(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
-              }
-            }}
-            disabled={zoom <= MIN_ZOOM}
-            className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
-            title="Zoom Out"
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleZoomOut}
+          disabled={zoom <= MIN_ZOOM}
+          className="w-10 h-10 bg-background/95 backdrop-blur-sm shadow-lg hover:bg-background"
+          title="Zoom Out"
+        >
+          <ZoomOut className="h-5 w-5" />
+        </Button>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setZoom(1);
-            }}
-            disabled={zoom === 1}
-            className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
-            title="Reset Zoom"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleResetZoom}
+          disabled={zoom === 1}
+          className="w-10 h-10 bg-background/95 backdrop-blur-sm shadow-lg hover:bg-background"
+          title="Reset Zoom"
+        >
+          <RotateCcw className="h-5 w-5" />
+        </Button>
       </div>
     </div>
   )
