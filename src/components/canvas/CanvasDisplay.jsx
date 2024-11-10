@@ -373,6 +373,7 @@ export function CanvasDisplay({
           left: "50%",
           transform: "translate(-50%, -50%)",
           overflow: "auto",
+          zIndex: "10"
         }}
         onWheel={handleWheel}
       >

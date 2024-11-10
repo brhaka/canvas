@@ -57,7 +57,7 @@ const ShareButton = ({ url }) => {
         <Button
           variant="outline"
           size="icon"
-          className="text-primary hover:text-primary-foreground hover:bg-primary border-2 hover:border-primary z-2 fixed top-2 right-2"
+          className="text-primary hover:text-primary-foreground hover:bg-primary border-2 hover:border-primary fixed top-2 right-2 z-[100]"
         >
           <Share className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />
         </Button>
