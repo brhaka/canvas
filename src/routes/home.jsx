@@ -145,9 +145,9 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="fixed inset-0 flex flex-col md:flex-row">
+    <div className="min-h-screen flex flex-col md:flex-row">
       {/* Black Section with Canvas */}
-      <div className="w-full md:w-1/2 bg-black h-[40vh] md:h-full order-first md:order-last">
+      <div className="w-full md:w-1/2 bg-black h-[40vh] md:h-screen order-first md:order-last">
         <canvas
           ref={canvasRef}
           className="w-full h-full"
@@ -155,8 +155,8 @@ export default function Home() {
       </div>
 
       {/* White Section */}
-      <div className="w-full md:w-1/2 bg-white flex items-start md:items-center order-last md:order-first">
-        <div className="w-full px-8 pt-16 md:pt-0 md:px-16 lg:px-24">
+      <div className="w-full md:w-1/2 bg-white flex items-start md:items-center order-last md:order-first min-h-[60vh] md:h-screen">
+        <div className="w-full px-8 py-16 md:py-0 md:px-16 lg:px-24">
           <div className="space-y-4 mb-8">
             <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
               Welcome to Canvas
