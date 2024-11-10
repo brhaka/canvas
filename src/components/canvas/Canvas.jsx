@@ -75,7 +75,7 @@ export default function CollaborativeCanvas({ uuid }) {
   useEffect(() => {
     console.log("connectedUsers", connectedUsers, userConfig.userId, isReady)
 
-    if (connectedUsers.length > 0 && connectedUsers.find(user => user.isYou) && !isReady) {
+    if (connectedUsers.length > 1 && connectedUsers.find(user => user.isYou) && !isReady) {
       console.log("setting ready")
       setIsReady(true)
 
@@ -190,7 +190,7 @@ export default function CollaborativeCanvas({ uuid }) {
     setUserConfig({
       userId: uuidv4(),
       userName: username,
-      isHost: connectedUsers[0]?.id === connectedUsers.find(user => user.isYou)?.id,
+      isHost: connectedUsers === 1,
       userSpaceLimited: limitUserSpace,
       squares: []
     })
@@ -203,7 +203,7 @@ export default function CollaborativeCanvas({ uuid }) {
     <>
       {showConfigModal && isReady && (
         <UserConfigModal
-          isHost={connectedUsers[0]?.id === connectedUsers.find(user => user.isYou)?.id}
+          isHost={connectedUsers == 1}
           onSubmit={handleConfigSubmit}
         />
       )}
