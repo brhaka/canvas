@@ -6,6 +6,51 @@ import { TOOL_TYPES } from './types'
 import { Button } from "@/components/ui/button"
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react" // Import icons
 
+// Add this new function before the CanvasDisplay component
+const simplifyPoints = (points, tolerance = 2) => {
+  if (points.length <= 2) return points;
+
+  const findPerpendicularDistance = (point, lineStart, lineEnd) => {
+    const numerator = Math.abs(
+      (lineEnd.y - lineStart.y) * point.x -
+      (lineEnd.x - lineStart.x) * point.y +
+      lineEnd.x * lineStart.y -
+      lineEnd.y * lineStart.x
+    );
+
+    const denominator = Math.sqrt(
+      Math.pow(lineEnd.y - lineStart.y, 2) +
+      Math.pow(lineEnd.x - lineStart.x, 2)
+    );
+
+    return numerator / denominator;
+  };
+
+  let maxDistance = 0;
+  let maxIndex = 0;
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const distance = findPerpendicularDistance(
+      points[i],
+      points[0],
+      points[points.length - 1]
+    );
+
+    if (distance > maxDistance) {
+      maxDistance = distance;
+      maxIndex = i;
+    }
+  }
+
+  if (maxDistance > tolerance) {
+    const firstHalf = simplifyPoints(points.slice(0, maxIndex + 1), tolerance);
+    const secondHalf = simplifyPoints(points.slice(maxIndex), tolerance);
+    return [...firstHalf.slice(0, -1), ...secondHalf];
+  }
+
+  return [points[0], points[points.length - 1]];
+};
+
 export function CanvasDisplay({
   canvasRef,
   strokes,
@@ -130,10 +175,10 @@ export function CanvasDisplay({
 
     const context = canvas.getContext('2d')
     const dpr = window.devicePixelRatio || 1
-    
+
     // Clear the canvas
     context.clearRect(0, 0, canvas.width, canvas.height)
-    
+
     // Set up the context for the current canvas size
     context.setTransform(1, 0, 0, 1, 0, 0)
     context.scale(dpr * canvasSize.scaleX, dpr * canvasSize.scaleY)
@@ -177,7 +222,7 @@ export function CanvasDisplay({
 
     // // Draw the final result to the main canvas
     // context.drawImage(offscreenCanvas, 0, 0)
-  
+
   useEffect(() => {
     renderStrokes();
   }, [renderStrokes, canvasSize]);
@@ -186,9 +231,9 @@ export function CanvasDisplay({
   const getCoordinates = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    
+
     let clientX, clientY;
-    
+
     if (e.touches) {
       // Touch event
       clientX = e.touches[0].clientX;
@@ -256,25 +301,32 @@ export function CanvasDisplay({
   };
 
   const stopDrawing = () => {
-    if (!isDrawing || !currentStroke) return
+    if (!isDrawing || !currentStroke) return;
 
     // Only add stroke if it has at least 2 points
     if (currentStroke.points.length >= 2) {
-      addStroke(currentStroke)
+      // Simplify the points before adding the stroke
+      const simplifiedStroke = {
+        ...currentStroke,
+        points: simplifyPoints(currentStroke.points)
+      };
+      console.log('Original points:', currentStroke.points.length);
+      console.log('Simplified points:', simplifiedStroke.points.length);
+      addStroke(simplifiedStroke);
     }
 
-    setCurrentStroke(null)
-    currentStrokeRef.current = null
-    lastPointRef.current = null
-    setIsDrawing(false)
-  }
+    setCurrentStroke(null);
+    currentStrokeRef.current = null;
+    lastPointRef.current = null;
+    setIsDrawing(false);
+  };
 
   return (
     <div className="relative w-full h-full">
       <canvas
         ref={canvasRef}
         className="w-full h-full touch-none select-none rounded-lg border border-gray-200"
-        style={{ 
+        style={{
           touchAction: 'none',
           display: 'block',
           maxWidth: '100%',
@@ -289,7 +341,7 @@ export function CanvasDisplay({
         onTouchEnd={stopDrawing}
         onTouchCancel={stopDrawing}
       />
-      
+
       {/* Updated zoom controls with better mobile positioning and touch handling */}
       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
         <Button
@@ -308,7 +360,7 @@ export function CanvasDisplay({
         >
           <ZoomIn className="h-4 w-4" />
         </Button>
-        
+
         <Button
           variant="outline"
           size="icon"
@@ -325,7 +377,7 @@ export function CanvasDisplay({
         >
           <ZoomOut className="h-4 w-4" />
         </Button>
-        
+
         <Button
           variant="outline"
           size="icon"
