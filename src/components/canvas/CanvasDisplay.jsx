@@ -355,7 +355,7 @@ export function CanvasDisplay({
 
   return (
     <div className="relative w-full h-full flex-1">
-      <Card className="fixed right-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 p-2 w-[60px] items-center !rounded-l-none z-50 bg-background">
+      <Card className="fixed right-0 top-1/2 -translate-y-1/2 flex flex-col gap-4 p-2 w-[60px] items-center !rounded-r-none z-50 bg-background">
         <Button
           variant="ghost"
           onClick={handleZoomIn}
@@ -398,7 +398,6 @@ export function CanvasDisplay({
           left: "50%",
           transform: "translate(-50%, -50%)",
           overflow: "auto",
-          zIndex: "10"
         }}
         onWheel={handleWheel}
       >
