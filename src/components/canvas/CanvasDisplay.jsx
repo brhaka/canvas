@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { debounce } from 'lodash'
 import { TOOL_TYPES } from './types'
 import { Button } from "@/components/ui/button"
-import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react" // Import icons
+import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react"
 import { simplifyPoints, smoothStroke } from './utils'
 import { drawLine } from './utils'
 import { Card } from "@/components/ui/card"
@@ -24,6 +24,8 @@ export function CanvasDisplay({
   const lastPointRef = useRef(null)
   const initialSizeRef = useRef(null)
   const [zoom, setZoom] = useState(1);
+  const CANVAS_WIDTH = 3000;
+  const CANVAS_HEIGHT = 1000;
   const MIN_ZOOM = 0.5;
   const MAX_ZOOM = 2;
   const ZOOM_STEP = 0.1;
@@ -39,27 +41,31 @@ export function CanvasDisplay({
       const rect = container.getBoundingClientRect()
       const dpr = window.devicePixelRatio || 1
 
-      // Set initial size reference if not set
-      if (!initialSizeRef.current) {
-        initialSizeRef.current = {
-          width: rect.width,
-          height: rect.height,
-          dpr: dpr
-        }
-      }
+      // Calculate the scale to fit the canvas in the container while maintaining aspect ratio
+      const scale = Math.min(
+        rect.width / CANVAS_WIDTH,
+        rect.height / CANVAS_HEIGHT
+      )
 
-      // Update canvas size
-      canvas.style.width = `${rect.width}px`
-      canvas.style.height = `${rect.height}px`
-      canvas.width = Math.floor(rect.width * dpr)
-      canvas.height = Math.floor(rect.height * dpr)
+      // Set the styled dimensions to maintain aspect ratio
+      const displayWidth = CANVAS_WIDTH * scale
+      const displayHeight = CANVAS_HEIGHT * scale
+
+      // Update canvas display size
+      canvas.style.width = `${displayWidth}px`
+      canvas.style.height = `${displayHeight}px`
+
+      // Set actual canvas dimensions (accounting for DPR)
+      canvas.width = CANVAS_WIDTH * dpr
+      canvas.height = CANVAS_HEIGHT * dpr
 
       setCanvasSize({
-        width: rect.width,
-        height: rect.height,
-        dpr: dpr,
-        scaleX: rect.width / initialSizeRef.current.width,
-        scaleY: rect.height / initialSizeRef.current.height
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        displayWidth,
+        displayHeight,
+        dpr,
+        scale
       })
     }
 
@@ -96,7 +102,7 @@ export function CanvasDisplay({
 
   const renderStrokes = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !initialSizeRef.current) return;
+    if (!canvas) return;
 
     const context = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
@@ -104,18 +110,16 @@ export function CanvasDisplay({
     // Clear the canvas
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Set up the context for the current canvas size
+    // Scale the context to account for DPR
     context.setTransform(1, 0, 0, 1, 0, 0);
-    context.scale(dpr * canvasSize.scaleX, dpr * canvasSize.scaleY);
+    context.scale(dpr, dpr);
 
     // Render all strokes
     strokes.forEach(stroke => {
       if (!stroke.points || stroke.points.length < 2) return;
 
-      // Generate smoothed points for rendering
       const smoothedPoints = smoothStroke(stroke.points);
 
-      // Draw using smoothed points
       for (let i = 1; i < smoothedPoints.length; i++) {
         drawLine(
           context,
@@ -129,7 +133,7 @@ export function CanvasDisplay({
         );
       }
     });
-  }, [strokes, canvasSize]);
+  }, [strokes]);
 
   useEffect(() => {
     renderStrokes();
@@ -139,28 +143,31 @@ export function CanvasDisplay({
   const getCoordinates = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
 
     let clientX, clientY;
 
     if (e.touches) {
-      // Touch event
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
     } else {
-      // Mouse event
       clientX = e.clientX;
       clientY = e.clientY;
     }
 
-    // Calculate coordinates relative to initial canvas size
-    const x = ((clientX - rect.left) / canvasSize.scaleX);
-    const y = ((clientY - rect.top) / canvasSize.scaleY);
+    // Calculate the scale factor between displayed size and actual canvas size
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    // Calculate coordinates in canvas space
+    const x = (clientX - rect.left) * scaleX / dpr;
+    const y = (clientY - rect.top) * scaleY / dpr;
 
     return { x, y };
   };
 
   const startDrawing = (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setIsMouseDown(true);
     const point = getCoordinates(e);
 
@@ -182,7 +189,7 @@ export function CanvasDisplay({
   };
 
   const draw = (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     if (!isDrawing || (!e.touches && !isMouseDown)) return;
 
     const newPoint = getCoordinates(e);
@@ -212,7 +219,7 @@ export function CanvasDisplay({
 
       // Set up the context for the current canvas size
       context.setTransform(1, 0, 0, 1, 0, 0);
-      context.scale(dpr * canvasSize.scaleX, dpr * canvasSize.scaleY);
+      context.scale(dpr, dpr);
 
       drawLine(
         context,
@@ -272,6 +279,40 @@ export function CanvasDisplay({
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
   }, []);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Add non-passive touch event listeners while keeping the existing ones
+    const options = { passive: false };
+
+    const handleTouchStart = (e) => {
+      e.preventDefault();
+      startDrawing(e);
+    };
+
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      draw(e);
+    };
+
+    const handleTouchEnd = (e) => {
+      e.preventDefault();
+      stopDrawing();
+    };
+
+    // Add these listeners alongside existing ones
+    canvas.addEventListener('touchstart', handleTouchStart, options);
+    canvas.addEventListener('touchmove', handleTouchMove, options);
+    canvas.addEventListener('touchend', handleTouchEnd, options);
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
+
   return (
     <div className="w-full h-full">
       <canvas
@@ -280,8 +321,8 @@ export function CanvasDisplay({
         style={{
           touchAction: 'none',
           display: 'block',
-          maxWidth: '100%',
-          maxHeight: '100%'
+          width: `${CANVAS_WIDTH}px`,
+          height: `${CANVAS_HEIGHT}px`
         }}
         onMouseDown={(e) => {
           setIsMouseDown(true);
