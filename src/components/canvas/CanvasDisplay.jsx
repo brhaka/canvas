@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react"
 import { simplifyPoints, smoothStroke } from './utils'
 import { drawLine } from './utils'
+import { Card } from "@/components/ui/card"
 
 export function CanvasDisplay({
   canvasRef,
@@ -245,15 +246,26 @@ export function CanvasDisplay({
         ...currentStroke,
         points: simplifyPoints(currentStroke.points)
       };
-      console.log('Original points:', currentStroke.points.length);
-      console.log('Simplified points:', simplifiedStroke.points.length);
-      addStroke(simplifiedStroke);
-    }
 
-    setCurrentStroke(null);
-    currentStrokeRef.current = null;
-    lastPointRef.current = null;
-    setIsDrawing(false);
+      // Remove console.logs that might cause delay
+      // console.log('Original points:', currentStroke.points.length);
+      // console.log('Simplified points:', simplifiedStroke.points.length);
+
+      // Update these state changes to happen simultaneously
+      setCurrentStroke(null);
+      currentStrokeRef.current = null;
+      lastPointRef.current = null;
+      setIsDrawing(false);
+
+      // Move addStroke after state updates
+      addStroke(simplifiedStroke);
+    } else {
+      // If stroke is too short, just reset states
+      setCurrentStroke(null);
+      currentStrokeRef.current = null;
+      lastPointRef.current = null;
+      setIsDrawing(false);
+    }
   };
 
   // Add global mouse up handler
@@ -302,120 +314,130 @@ export function CanvasDisplay({
   }, []);
 
   return (
-    <div className="relative w-full h-full overflow-auto">
-      <div className="absolute min-w-full min-h-full">
-        <canvas
-          ref={canvasRef}
-          className="touch-none select-none rounded-lg border border-gray-200"
-          style={{
-            touchAction: 'none',
-            display: 'block',
-            width: `${CANVAS_WIDTH}px`,
-            height: `${CANVAS_HEIGHT}px`
-          }}
-          onMouseDown={(e) => {
-            setIsMouseDown(true);
-            startDrawing(e);
-          }}
-          onMouseMove={draw}
-          onMouseUp={() => {
-            setIsMouseDown(false);
-            stopDrawing();
-          }}
-          onMouseOut={(e) => {
-            if (isDrawing) {
-              // Finalize the current stroke before leaving the canvas
-              if (currentStroke?.points.length >= 2) {
-                const simplifiedStroke = {
-                  ...currentStroke,
-                  points: simplifyPoints(currentStroke.points)
-                };
-                addStroke(simplifiedStroke);
-              }
-              setIsDrawing(false);
-              setCurrentStroke(null);
-              currentStrokeRef.current = null;
-              lastPointRef.current = null;
-            }
-          }}
-          onMouseEnter={(e) => {
-            if (isMouseDown) {
-              // Start a fresh stroke when re-entering
-              const point = getCoordinates(e);
-              const newStroke = {
-                id: uuidv4(),
-                type: activeTool,
-                points: [point],
-                style: {
-                  color,
-                  size: brushSize
-                },
-                timestamp: Date.now()
+    <div className="w-full h-full">
+      <canvas
+        ref={canvasRef}
+        className="w-full h-full touch-none select-none rounded-lg border border-gray-200"
+        style={{
+          touchAction: 'none',
+          display: 'block',
+          width: `${CANVAS_WIDTH}px`,
+          height: `${CANVAS_HEIGHT}px`
+        }}
+        onMouseDown={(e) => {
+          setIsMouseDown(true);
+          startDrawing(e);
+        }}
+        onMouseMove={draw}
+        onMouseUp={() => {
+          setIsMouseDown(false);
+          stopDrawing();
+        }}
+        onMouseOut={(e) => {
+          if (isDrawing) {
+            // Finalize the current stroke before leaving the canvas
+            if (currentStroke?.points.length >= 2) {
+              const simplifiedStroke = {
+                ...currentStroke,
+                points: simplifyPoints(currentStroke.points)
               };
-              setCurrentStroke(newStroke);
-              currentStrokeRef.current = newStroke;
-              lastPointRef.current = point;
-              setIsDrawing(true);
+              addStroke(simplifiedStroke);
+            }
+            setIsDrawing(false);
+            setCurrentStroke(null);
+            currentStrokeRef.current = null;
+            lastPointRef.current = null;
+          }
+        }}
+        onMouseEnter={(e) => {
+          if (isMouseDown) {
+            // Start a fresh stroke when re-entering
+            const point = getCoordinates(e);
+            const newStroke = {
+              id: uuidv4(),
+              type: activeTool,
+              points: [point],
+              style: {
+                color,
+                size: brushSize
+              },
+              timestamp: Date.now()
+            };
+            setCurrentStroke(newStroke);
+            currentStrokeRef.current = newStroke;
+            lastPointRef.current = point;
+            setIsDrawing(true);
+          }
+        }}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          startDrawing(e);
+        }}
+        onTouchMove={(e) => {
+          e.preventDefault();
+          draw(e);
+        }}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          stopDrawing();
+        }}
+        onTouchCancel={(e) => {
+          e.preventDefault();
+          stopDrawing();
+        }}
+      />
+
+      {/* Zoom Controls */}
+      <Card className="absolute right-0 flex flex-col gap-2 p-1.5 w-[48px] items-center !rounded-r-none top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm">
+        <Button
+          variant="ghost"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (zoom < MAX_ZOOM) {
+              setZoom(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
             }
           }}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
-          onTouchCancel={stopDrawing}
-        />
+          size="icon"
+          className={`h-8 w-8 bg-background/80 hover:bg-accent/10 hover:border-transparent`}
+          disabled={zoom >= MAX_ZOOM}
+          title="Zoom In"
+        >
+          <ZoomIn className="h-4 w-4 text-foreground" />
+        </Button>
 
-        {/* Updated zoom controls with better mobile positioning and touch handling */}
-        <div className="fixed right-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={(e) => {
-              e?.preventDefault();
-              e?.stopPropagation();
-              if (zoom < MAX_ZOOM) {
-                setZoom(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
-              }
-            }}
-            disabled={zoom >= MAX_ZOOM}
-            className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
-            title="Zoom In"
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
+        <Button
+          variant="ghost"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (zoom > MIN_ZOOM) {
+              setZoom(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
+            }
+          }}
+          size="icon"
+          className={`h-8 w-8 bg-background/80 hover:bg-accent/10 hover:border-transparent`}
+          disabled={zoom <= MIN_ZOOM}
+          title="Zoom Out"
+        >
+          <ZoomOut className="h-4 w-4 text-foreground" />
+        </Button>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={(e) => {
-              e?.preventDefault();
-              e?.stopPropagation();
-              if (zoom > MIN_ZOOM) {
-                setZoom(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
-              }
-            }}
-            disabled={zoom <= MIN_ZOOM}
-            className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
-            title="Zoom Out"
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={(e) => {
-              e?.preventDefault();
-              e?.stopPropagation();
-              setZoom(1);
-            }}
-            disabled={zoom === 1}
-            className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
-            title="Reset Zoom"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+        <Button
+          variant="ghost"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setZoom(1);
+          }}
+          size="icon"
+          className={`h-8 w-8 bg-background/80 hover:bg-accent/10 hover:border-transparent`}
+          disabled={zoom === 1}
+          title="Reset Zoom"
+        >
+          <RotateCcw className="h-4 w-4 text-foreground" />
+        </Button>
+      </Card>
     </div>
   )
 }

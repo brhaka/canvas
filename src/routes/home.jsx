@@ -22,6 +22,18 @@ export default function Home() {
     // Add resize listener
     window.addEventListener('resize', resizeCanvas);
 
+    // Determine number of cursors based on screen width
+    const getNumCursors = () => {
+      const width = window.innerWidth;
+      if (width < 768) { // mobile
+        return 200;
+      } else if (width < 1024) { // tablet
+        return 500;
+      } else { // desktop
+        return 1000;
+      }
+    };
+
     // Helper function to generate truly unique colors
     const generateUniqueColors = (count) => {
       const goldenRatio = 0.618033988749895;
@@ -45,8 +57,8 @@ export default function Home() {
     };
 
     // Create cursors with unique colors
-    const uniqueColors = generateUniqueColors(1000);
-    const cursors = Array.from({ length: 1000 }, (_, index) => {
+    const uniqueColors = generateUniqueColors(getNumCursors());
+    const cursors = Array.from({ length: getNumCursors() }, (_, index) => {
       return {
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
@@ -133,10 +145,18 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="fixed inset-0 flex flex-col md:flex-row">
-      {/* Left Section - White */}
-      <div className="w-full md:w-1/2 bg-white flex items-center">
-        <div className="w-full px-8 md:px-16 lg:px-24">
+    <div className="min-h-screen flex flex-col md:flex-row">
+      {/* Black Section with Canvas */}
+      <div className="w-full md:w-1/2 bg-black h-[40vh] md:h-screen order-first md:order-last">
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full"
+        />
+      </div>
+
+      {/* White Section */}
+      <div className="w-full md:w-1/2 bg-white flex items-start md:items-center order-last md:order-first min-h-[60vh] md:h-screen">
+        <div className="w-full px-8 py-16 md:py-0 md:px-16 lg:px-24">
           <div className="space-y-4 mb-8">
             <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
               Welcome to Canvas
@@ -146,29 +166,16 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex flex-row gap-4">
-            <Link
-              to="/login"
-              className="w-full px-6 py-4 text-lg font-semibold rounded-lg bg-black text-white hover:bg-black/90 transition-colors text-center"
-            >
+          {/* Changed to flex-col on mobile, flex-row on desktop */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <Link to="/login" className="w-full px-6 py-4 text-lg font-semibold rounded-lg bg-black text-white hover:bg-black/90 transition-colors text-center">
               Login
             </Link>
-            <Link
-              to="/canvas"
-              className="w-full px-6 py-4 text-lg font-semibold rounded-lg border border-black text-black hover:bg-black/5 transition-colors text-center"
-            >
+            <Link to="/canvas" className="w-full px-6 py-4 text-lg font-semibold rounded-lg border border-black text-black hover:bg-black/5 transition-colors text-center">
               Try Demo
             </Link>
           </div>
         </div>
-      </div>
-
-      {/* Right Section - Black */}
-      <div className="w-full md:w-1/2 bg-black h-[320px] md:h-full">
-        <canvas
-          ref={canvasRef}
-          className="w-full h-full"
-        />
       </div>
     </div>
   );
