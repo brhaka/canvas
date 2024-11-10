@@ -6,7 +6,6 @@ export default function Canvas() {
   const { uuid } = useParams();
 
   return (
-    <>
     <ReactTogether
       sessionParams={{
         appId: import.meta.env['VITE_APP_ID'],
@@ -15,10 +14,7 @@ export default function Canvas() {
         password: uuid,
       }}
     >
-
       <CollaborativeCanvas uuid={uuid} />
-      <Link to="/">Go back to home</Link>
     </ReactTogether>
-    </>
   );
 }
