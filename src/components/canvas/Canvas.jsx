@@ -73,6 +73,8 @@ export default function CollaborativeCanvas({ uuid }) {
 
   // User configuration effect
   useEffect(() => {
+    console.log("connectedUsers", connectedUsers, connectedUsers.find(user => user.isYou))
+
     if (connectedUsers.length > 0 && connectedUsers.find(user => user.isYou) && !isReady) {
       setIsReady(true)
       if (!userConfig.userId) {
