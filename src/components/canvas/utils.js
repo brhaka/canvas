@@ -1,0 +1,1 @@
+export const getJsonSize = (obj) => new TextEncoder().encode(JSON.stringify(obj)).length;

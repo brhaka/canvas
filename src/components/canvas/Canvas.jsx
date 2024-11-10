@@ -7,15 +7,14 @@ import ShareButton from '@/components/share-button';
 import { TOOL_TYPES } from './types'
 import { v4 as uuidv4 } from 'uuid';
 import { UserConfigModal } from './UserConfigModal'
+import { loadCanvasState } from './canvas-states';
+import { handleStrokeUpdate, handleStateSave } from './canvasStateManager';
+import { addStroke } from './addStroke';
 
 let queue = [];
 let inBetween = false;
 
-const LAMBDA_ENDPOINT = "https://myi4qklfpb.execute-api.eu-west-3.amazonaws.com/canvas-state"
-const MAX_STROKES_BEFORE_SAVE = 15;
 const MAX_STATE_SIZE_BYTES = 4000;
-
-const getJsonSize = (obj) => new TextEncoder().encode(JSON.stringify(obj)).length;
 
 export default function CollaborativeCanvas({ uuid }) {
   const canvasRef = useRef(null)
@@ -83,117 +82,42 @@ export default function CollaborativeCanvas({ uuid }) {
     setShowConfigModal(false);
   };
 
-  // Initial state loading
+  // Simplified initial state loading
   useEffect(() => {
     if (hasLoaded.current) return;
     hasLoaded.current = true;
 
-    const loadState = async () => {
-      try {
-        const response = await fetch(`${LAMBDA_ENDPOINT}/${uuid}`, {
-          method: 'GET'
-        })
+    const initializeCanvas = async () => {
+      const initialState = await loadCanvasState(uuid);
+      setBaseStrokes(initialState);
+      setMyStrokes(initialState);
+    };
 
-        if (response.ok) {
-          const data = await response.json()
-          setBaseStrokes(data)
-          setMyStrokes(data)
-        }
-      } catch (error) {
-        console.error('Failed to load state:', error)
-      }
-    }
-
-    loadState()
-  }, [uuid])
+    initializeCanvas();
+  }, [uuid]);
 
   useEffect(() => {
-    if (strokes.length === 0) return;
-
-    const currentSize = getJsonSize(strokes);
-    console.log("Current strokes state size:", currentSize, "bytes");
-
-    // Check if we need to save
-    const shouldSave =
-      strokes.length >= MAX_STROKES_BEFORE_SAVE ||
-      currentSize >= MAX_STATE_SIZE_BYTES;
-
-    if (shouldSave) {
-      saveState();
-    }
-
-    // Handle new strokes
-    const myIds = myStrokes.map(stroke => stroke.id);
-    const newStrokes = strokes.filter(stroke => !myIds.includes(stroke.id));
-
-    if (newStrokes.length > 0) {
-      setMyStrokes(prevMyStrokes => [...prevMyStrokes, ...newStrokes]);
-    }
-
-    if (queue.length > 0) {
-      inBetween = true;
-      setStrokes(prevStrokes => [...prevStrokes, ...queue]);
-      queue = [];
-    } else {
-      inBetween = false;
-    }
+    handleStrokeUpdate({
+      strokes,
+      myStrokes,
+      setMyStrokes,
+      setStrokes,
+      queue,
+      inBetween,
+      baseStrokes,
+      saveState,
+      MAX_STATE_SIZE_BYTES
+    });
   }, [strokes]);
 
-  // // Add effect to handle save completion
-  // useEffect(() => {
-  //   // All users update their local state when a save completes
-  //   setMyStrokes(prevMyStrokes => {
-  //     const newStrokes = [...baseStrokes];
-  //     // Add any new strokes that came in since the save started
-  //     strokes.forEach(stroke => {
-  //       if (!newStrokes.find(s => s.id === stroke.id)) {
-  //         newStrokes.push(stroke);
-  //       }
-  //     });
-  //     return newStrokes;
-  //   });
-  // },);
-
-  // Modified save function that coordinates across users
   const saveState = async () => {
-    if (strokes.length === 0) return;
-
-    // Add a small random delay to prevent race conditions between users
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 1000));
-
-    try {
-      console.log("Starting save to S3", {
-        baseStrokesCount: baseStrokes.length,
-        newStrokesCount: strokes.length,
-        currentStateSize: getJsonSize(strokes)
-      });
-
-      const strokesToSave = [...strokes];
-      const newBaseStrokes = [...baseStrokes, ...strokesToSave];
-
-      const response = await fetch(`${LAMBDA_ENDPOINT}/${uuid}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(newBaseStrokes)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to save: ${response.statusText}`);
-      }
-
-      // Update shared state
-      setBaseStrokes(newBaseStrokes);
-      setStrokes([]);
-
-      console.log("Save completed successfully", {
-        savedStrokesCount: strokesToSave.length
-      });
-
-    } catch (error) {
-      console.error('Failed to save state:', error);
-    }
+    await handleStateSave({
+      strokes,
+      baseStrokes,
+      setBaseStrokes,
+      setStrokes,
+      uuid
+    });
   };
 
   // User configuration effect
@@ -220,30 +144,18 @@ export default function CollaborativeCanvas({ uuid }) {
     }
   }, [strokes]);
 
-  const addStroke = (stroke) => {
-    const newStroke = { ...stroke };
-    const potentialNewStrokes = [...strokes, newStroke];
-    const potentialSize = getJsonSize(potentialNewStrokes);
-
-    // Add to local state first
-    setMyStrokes(prev => [...prev, newStroke]);
-
-    // Handle size limit
-    if (potentialSize >= MAX_STATE_SIZE_BYTES) {
-      saveState();
-      setStrokes([newStroke]); // Start fresh with just the new stroke
-      setUndoStack(prev => [...prev, newStroke.id]);
-      return;
-    }
-
-    // Handle normal case
-    if (inBetween) {
-      queue.push(newStroke);
-    } else {
-      inBetween = true;
-      setStrokes(prev => [...prev, newStroke]);
-    }
-    setUndoStack(prev => [...prev, newStroke.id]);
+  const handleAddStroke = (stroke) => {
+    addStroke({
+      stroke,
+      strokes,
+      setStrokes,
+      setMyStrokes,
+      setUndoStack,
+      queue,
+      inBetween,
+      saveState,
+      MAX_STATE_SIZE_BYTES
+    });
   };
 
   const handleUndo = () => {
@@ -287,7 +199,7 @@ export default function CollaborativeCanvas({ uuid }) {
               activeTool={activeTool}
               color={color}
               brushSize={currentSize}
-              addStroke={addStroke}
+              addStroke={handleAddStroke}
             />
           </div>
         </CardContent>
