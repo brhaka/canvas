@@ -1,11 +1,10 @@
 import { useRef, useState, useEffect } from 'react'
-// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CanvasControls } from './CanvasControls'
 import { CanvasDisplay } from './CanvasDisplay'
 import { useStateTogether, useStateTogetherWithPerUserValues, useConnectedUsers } from 'react-together'
 import { TOOL_TYPES } from './types'
-// import { v4 as uuidv4 } from 'uuid';
-// import { UserConfigModal } from './UserConfigModal'
+import { v4 as uuidv4 } from 'uuid';
+import { UserConfigModal } from './UserConfigModal'
 import { loadCanvasState } from './canvas-states';
 import { handleStrokeUpdate, handleStateSave } from './canvasStateManager';
 import { addStroke } from './addStroke';
@@ -27,11 +26,12 @@ export default function CollaborativeCanvas({ uuid }) {
   const [strokes, setStrokes] = useStateTogether("strokes", [])
   const [localStrokes, setLocalStrokes] = useState([])
   const [undoStack, setUndoStack] = useStateTogether("undoStack", [])
+  const [baseStrokes, setBaseStrokes] = useState([])
 
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [isReady, setIsReady] = useState(false)
 
-  const myUserId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  const myUserId = uuidv4();
 
   const hasLoaded = useRef(false);
 
@@ -44,9 +44,9 @@ export default function CollaborativeCanvas({ uuid }) {
     squares: []
   });
 
-  // const [canvasSettings, setCanvasSettings] = useStateTogether('canvasSettings', {
-  //   userSpaceLimited: false
-  // });
+  const [canvasSettings, setCanvasSettings] = useStateTogether('canvasSettings', {
+    userSpaceLimited: false
+  });
 
   const [userCountChanged, setUserCountChanged] = useState(false);
 
@@ -61,15 +61,35 @@ export default function CollaborativeCanvas({ uuid }) {
   useEffect(() => {
     if (connectedUsers.length > 0 && connectedUsers.find(user => user.isYou) && !isReady) {
       const isFirstUser = connectedUsers.length === 1;
-      console.log("Setting ready, isFirstUser:", isFirstUser);
       setIsReady(true);
 
       if (!userConfig.userId) {
-        console.log("Showing config modal, isFirstUser:", isFirstUser);
         setShowConfigModal(true);
       }
     }
   }, [connectedUsers, userConfig.userId, isReady]);
+
+  const handleConfigSubmit = ({ username, limitUserSpace }) => {
+    const isFirstUser = connectedUsers.length === 1;
+    const currentUser = connectedUsers.find(user => user.isYou);
+
+    // Set user-specific config
+    setUserConfig({
+      userId: currentUser?.userId || uuidv4(),
+      userName: username,
+      isHost: isFirstUser,
+      squares: []
+    });
+
+    // If user is host, set the global canvas settings
+    if (isFirstUser) {
+      setCanvasSettings({
+        userSpaceLimited: limitUserSpace
+      });
+    }
+
+    setShowConfigModal(false);
+  };
 
   // Simplified initial state loading
   useEffect(() => {
@@ -78,6 +98,7 @@ export default function CollaborativeCanvas({ uuid }) {
 
     const initializeCanvas = async () => {
       const initialState = await loadCanvasState(uuid);
+      setBaseStrokes(initialState);
       setLocalStrokes(initialState);
     };
 
@@ -92,6 +113,7 @@ export default function CollaborativeCanvas({ uuid }) {
       setStrokes,
       queue,
       inBetween,
+      baseStrokes,
       saveState,
       MAX_STATE_SIZE_BYTES
     });
@@ -100,20 +122,12 @@ export default function CollaborativeCanvas({ uuid }) {
   const saveState = async () => {
     await handleStateSave({
       strokes,
+      baseStrokes,
+      setBaseStrokes,
       setStrokes,
       uuid
     });
   };
-
-  // User configuration effect
-  useEffect(() => {
-    if (connectedUsers.length > 0 && !isReady) {
-      setIsReady(true)
-      if (!userConfig.userId) {
-        setShowConfigModal(true)
-      }
-    }
-  }, [connectedUsers, userConfig.userId, isReady])
 
   // Strokes synchronization effect
   useEffect(() => {
@@ -200,7 +214,7 @@ export default function CollaborativeCanvas({ uuid }) {
           color={color}
           brushSize={currentSize}
           addStroke={handleAddStroke}
-          userId={myUserId}
+          userId={userConfig.userId}
         />
       </div>
 
@@ -218,6 +232,14 @@ export default function CollaborativeCanvas({ uuid }) {
           canUndo={(undoStack || []).length > 0}
         />
       </div>
+
+      {/* User Configuration Modal */}
+      {showConfigModal && (
+        <UserConfigModal
+          onSubmit={handleConfigSubmit}
+          isHost={connectedUsers.length === 1}
+        />
+      )}
     </div>
   )
 }
