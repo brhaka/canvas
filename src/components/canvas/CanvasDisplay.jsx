@@ -55,7 +55,6 @@ const simplifyPoints = (points, tolerance = 2) => {
 export function CanvasDisplay({
   canvasRef,
   strokes,
-  currentUserId,
   activeTool,
   color,
   brushSize,

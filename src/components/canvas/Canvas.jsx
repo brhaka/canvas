@@ -2,20 +2,19 @@ import { useRef, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CanvasControls } from './CanvasControls'
 import { CanvasDisplay } from './CanvasDisplay'
-import { useStateTogether } from 'react-together'
-import { TOOL_TYPES } from './types'
-import _ from 'lodash'
+import { useStateTogether, useStateTogetherWithPerUserValues, useConnectedUsers } from 'react-together'
 import ShareButton from '@/components/share-button';
+import { TOOL_TYPES } from './types'
+import { v4 as uuidv4 } from 'uuid';
+import { UserConfigModal } from './UserConfigModal'
 
 let queue = [];
 let inBetween = false;
 
 const LAMBDA_ENDPOINT = "https://myi4qklfpb.execute-api.eu-west-3.amazonaws.com/canvas-state"
+const MAX_STROKES_BEFORE_SAVE = 15;
+const MAX_STATE_SIZE_BYTES = 4000;
 
-const MAX_STROKES_BEFORE_SAVE = 15; // Adjust based on your average stroke size
-const MAX_STATE_SIZE_BYTES = 4000; // Leaving some buffer below 4096
-
-// Helper to estimate JSON size
 const getJsonSize = (obj) => new TextEncoder().encode(JSON.stringify(obj)).length;
 
 export default function CollaborativeCanvas({ uuid }) {
@@ -28,15 +27,31 @@ export default function CollaborativeCanvas({ uuid }) {
   const [strokes, setStrokes] = useStateTogether("strokes", [])
   const [myStrokes, setMyStrokes] = useState([])
   const [undoStack, setUndoStack] = useStateTogether("undoStack", [])
-
   const [baseStrokes, setBaseStrokes] = useState([])
 
-  // Add shared saving state
+  const [showConfigModal, setShowConfigModal] = useState(false)
+  const [isReady, setIsReady] = useState(false)
+
+  // API-related state
   const [isSaving, setIsSaving] = useStateTogether("isSaving", false);
   const [lastSaveTime, setLastSaveTime] = useStateTogether("lastSaveTime", 0);
+  const hasLoaded = useRef(false);
 
-  // Load initial state from S3 via Lambda
+  // User management
+  const connectedUsers = useConnectedUsers()
+  const [userConfig, setUserConfig, allUsersConfig] = useStateTogetherWithPerUserValues('userConfigs', {
+    userId: null,
+    userName: null,
+    isHost: false,
+    userPaceLimited: false,
+    squares: []
+  });
+
+  // Initial state loading
   useEffect(() => {
+    if (hasLoaded.current) return;
+    hasLoaded.current = true;
+
     const loadState = async () => {
       try {
         const response = await fetch(`${LAMBDA_ENDPOINT}/${uuid}`, {
@@ -56,29 +71,20 @@ export default function CollaborativeCanvas({ uuid }) {
     loadState()
   }, [uuid])
 
-  // Modified strokes effect to coordinate saves across users
+  // User configuration effect
   useEffect(() => {
-    if (strokes.length === 0) return;
-
-    const currentSize = getJsonSize(strokes);
-    console.log("Current strokes state size:", currentSize, "bytes");
-
-    // Check if we need to save
-    const shouldSave =
-      strokes.length >= MAX_STROKES_BEFORE_SAVE ||
-      currentSize >= MAX_STATE_SIZE_BYTES;
-
-    if (shouldSave && !isSaving) {
-      saveState();
+    if (connectedUsers.length > 0 && !isReady) {
+      setIsReady(true)
+      if (!userConfig.userId) {
+        setShowConfigModal(true)
+      }
     }
+  }, [connectedUsers, userConfig.userId, isReady])
 
-    // Handle new strokes
+  // Strokes synchronization effect
+  useEffect(() => {
     const myIds = myStrokes.map(stroke => stroke.id);
-    const newStrokes = strokes.filter(stroke => !myIds.includes(stroke.id));
-
-    if (newStrokes.length > 0) {
-      setMyStrokes(prevMyStrokes => [...prevMyStrokes, ...newStrokes]);
-    }
+    setMyStrokes([...myStrokes, ...strokes.filter(stroke => !myIds.includes(stroke.id))]);
 
     if (queue.length > 0) {
       inBetween = true;
@@ -87,16 +93,14 @@ export default function CollaborativeCanvas({ uuid }) {
     } else {
       inBetween = false;
     }
-  }, [strokes, isSaving]);
+  }, [strokes]);
 
-  // Add effect to handle save completion
+  // Save completion effect
   useEffect(() => {
     if (lastSaveTime === 0) return;
 
-    // All users update their local state when a save completes
     setMyStrokes(prevMyStrokes => {
       const newStrokes = [...baseStrokes];
-      // Add any new strokes that came in since the save started
       strokes.forEach(stroke => {
         if (!newStrokes.find(s => s.id === stroke.id)) {
           newStrokes.push(stroke);
@@ -104,26 +108,16 @@ export default function CollaborativeCanvas({ uuid }) {
       });
       return newStrokes;
     });
-  }, [lastSaveTime]);
+  }, [lastSaveTime, baseStrokes, strokes]);
 
-  // Modified save function that coordinates across users
   const saveState = async () => {
     if (isSaving || strokes.length === 0) return;
 
-    // Add a small random delay to prevent race conditions between users
     await new Promise(resolve => setTimeout(resolve, Math.random() * 1000));
-
-    // Check if another user has already saved
     if (isSaving) return;
 
     try {
       setIsSaving(true);
-      console.log("Starting save to S3", {
-        baseStrokesCount: baseStrokes.length,
-        newStrokesCount: strokes.length,
-        currentStateSize: getJsonSize(strokes)
-      });
-
       const strokesToSave = [...strokes];
       const newBaseStrokes = [...baseStrokes, ...strokesToSave];
 
@@ -139,14 +133,9 @@ export default function CollaborativeCanvas({ uuid }) {
         throw new Error(`Failed to save: ${response.statusText}`);
       }
 
-      // Update shared state
       setBaseStrokes(newBaseStrokes);
       setStrokes([]);
       setLastSaveTime(Date.now());
-
-      console.log("Save completed successfully", {
-        savedStrokesCount: strokesToSave.length
-      });
 
     } catch (error) {
       console.error('Failed to save state:', error);
@@ -155,16 +144,12 @@ export default function CollaborativeCanvas({ uuid }) {
     }
   };
 
-  // Modified addStroke with better size handling
   const addStroke = (stroke) => {
     const newStroke = { ...stroke };
-
-    // Check if adding this stroke would exceed the size limit
     const potentialNewStrokes = [...strokes, newStroke];
     const potentialSize = getJsonSize(potentialNewStrokes);
 
     if (potentialSize >= MAX_STATE_SIZE_BYTES) {
-      // Force a save before adding the new stroke
       saveState().then(() => {
         setMyStrokes(prev => [...prev, newStroke]);
         setStrokes([newStroke]);
@@ -173,7 +158,6 @@ export default function CollaborativeCanvas({ uuid }) {
       return;
     }
 
-    // Normal flow if size is okay
     setMyStrokes(prev => [...prev, newStroke]);
 
     if (inBetween) {
@@ -185,63 +169,77 @@ export default function CollaborativeCanvas({ uuid }) {
     setUndoStack(prev => [...prev, newStroke.id]);
   };
 
-  // Modified undo to work with single array of strokes
   const handleUndo = () => {
     setUndoStack((prev) => {
       if (prev.length === 0) return prev
 
       const strokeIdToUndo = prev[prev.length - 1]
-
-      // Remove the stroke from strokes
       setStrokes((prevStrokes) =>
         prevStrokes.filter(stroke => stroke.id !== strokeIdToUndo)
       )
-
-      // Return updated undo stack
       return prev.slice(0, -1)
     })
+  }
+
+  const handleConfigSubmit = ({ username, limitUserSpace }) => {
+    setUserConfig({
+      userId: uuidv4(),
+      userName: username,
+      isHost: connectedUsers[0]?.id === connectedUsers.find(user => user.isYou)?.id,
+      userSpaceLimited: limitUserSpace,
+      squares: []
+    })
+    setShowConfigModal(false)
   }
 
   const currentSize = activeTool === TOOL_TYPES.ERASER ? eraserSize : brushSize
 
   return (
-    <Card className="fixed inset-0 w-screen h-screen overflow-hidden">
-      <CardHeader className="absolute top-0 left-0 right-0 z-10 p-3 sm:p-4 lg:p-6 h-[60px] bg-background/95 backdrop-blur-sm">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-xl sm:text-2xl lg:text-3xl">
-            Canvas
-          </CardTitle>
-          <ShareButton url={`${window.location.href}`} />
-        </div>
-      </CardHeader>
+    <>
+      {showConfigModal && isReady && (
+        <UserConfigModal
+          isHost={connectedUsers[0]?.id === connectedUsers.find(user => user.isYou)?.id}
+          onSubmit={handleConfigSubmit}
+        />
+      )}
+      <Card className="fixed inset-0 w-screen h-screen overflow-hidden">
+        <CardHeader className="absolute top-0 left-0 right-0 z-10 p-3 sm:p-4 lg:p-6 h-[60px] bg-background/95 backdrop-blur-sm">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-xl sm:text-2xl lg:text-3xl">
+              Canvas
+            </CardTitle>
+            <ShareButton url={`${window.location.href}`} />
+          </div>
+        </CardHeader>
 
-      <CardContent className="h-full pt-[60px] pb-[80px] sm:pb-[100px]">
-        <div className="relative w-full h-full">
-          <CanvasDisplay
-            canvasRef={canvasRef}
-            strokes={myStrokes}
-            activeTool={activeTool}
+        <CardContent className="h-full pt-[60px] pb-[80px] sm:pb-[100px]">
+          <div className="relative w-full h-full">
+            <CanvasDisplay
+              canvasRef={canvasRef}
+              strokes={myStrokes}
+              activeTool={activeTool}
+              color={color}
+              brushSize={currentSize}
+              addStroke={addStroke}
+            />
+          </div>
+        </CardContent>
+
+        <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-4 bg-background/95 backdrop-blur-sm">
+          <CanvasControls
             color={color}
-            brushSize={currentSize}
-            addStroke={addStroke}
+            setColor={setColor}
+            brushSize={brushSize}
+            setBrushSize={setBrushSize}
+            eraserSize={eraserSize}
+            setEraserSize={setEraserSize}
+            activeTool={activeTool}
+            setActiveTool={setActiveTool}
+            onUndo={handleUndo}
+            canUndo={(undoStack || []).length > 0}
           />
         </div>
-      </CardContent>
-
-      <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-4 bg-background/95 backdrop-blur-sm">
-        <CanvasControls
-          color={color}
-          setColor={setColor}
-          brushSize={brushSize}
-          setBrushSize={setBrushSize}
-          eraserSize={eraserSize}
-          setEraserSize={setEraserSize}
-          activeTool={activeTool}
-          setActiveTool={setActiveTool}
-          onUndo={handleUndo}
-          canUndo={(undoStack || []).length > 0}
-        />
-      </div>
-    </Card>
+      </Card>
+    </>
   )
 }
