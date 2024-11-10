@@ -12,7 +12,7 @@ let queue = [];
 let inBetween = false;
 
 const LAMBDA_ENDPOINT = "https://myi4qklfpb.execute-api.eu-west-3.amazonaws.com/canvas-state"
-// const MAX_STROKES_BEFORE_SAVE = 15;
+const MAX_STROKES_BEFORE_SAVE = 15;
 const MAX_STATE_SIZE_BYTES = 4000;
 
 const getJsonSize = (obj) => new TextEncoder().encode(JSON.stringify(obj)).length;
