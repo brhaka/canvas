@@ -297,7 +297,25 @@ export function CanvasDisplay({
         return updatedStroke;
       });
 
-      renderStrokes();
+      // Draw the line immediately
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+
+      // Set up the context for the current canvas size
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.scale(dpr * canvasSize.scaleX, dpr * canvasSize.scaleY);
+
+      drawLine(
+        context,
+        lastPoint,
+        newPoint,
+        {
+          type: activeTool,
+          color: color,
+          size: brushSize
+        }
+      );
     }
   };
 
