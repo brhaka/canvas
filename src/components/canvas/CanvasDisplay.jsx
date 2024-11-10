@@ -94,19 +94,21 @@ export function CanvasDisplay({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    let size = Math.max(brushSize / 2, 8);
+
     if (activeTool === TOOL_TYPES.ERASER) {
       canvas.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${
-        brushSize * 2
+        size * 2
       }" height="${
-        brushSize * 2
-      }" viewBox="0 0 24 24" fill="%23000000"><circle cx="12" cy="12" r="10" fill="white" stroke="black" stroke-width="2"/></svg>') ${brushSize} ${brushSize}, auto`;
+        size * 2
+      }" viewBox="0 0 24 24" fill="%23000000"><circle cx="12" cy="12" r="10" fill="white" stroke="black" stroke-width="2"/></svg>') ${size} ${size}, auto`;
     } else {
       const colorHex = color ? color.substring(1) : "000000";
       canvas.style.cursor = `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="${
-        brushSize * 2
+        size * 2
       }" height="${
-        brushSize * 2
-      }" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="%23${colorHex}" stroke="white" stroke-width="2"/></svg>') ${brushSize} ${brushSize}, auto`;
+        size * 2
+      }" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="%23${colorHex}" stroke="white" stroke-width="2"/></svg>') ${size} ${size}, auto`;
     }
   }, [activeTool, color, brushSize]);
 
@@ -219,10 +221,25 @@ export function CanvasDisplay({
         };
         setCurrentStroke(updatedStroke);
         currentStrokeRef.current = updatedStroke;
+
+        // Draw the new line segment immediately
+        const canvas = canvasRef.current;
+        const context = canvas.getContext("2d");
+        const dpr = window.devicePixelRatio || 1;
+
+        if (lastPointRef.current) {
+          context.setTransform(dpr, 0, 0, dpr, 0, 0);
+          drawLine(context, lastPointRef.current, point, {
+            type: activeTool,
+            color: color,
+            size: brushSize,
+          });
+        }
+
         lastPointRef.current = point;
       }
     },
-    [isDrawing]
+    [isDrawing, activeTool, color, brushSize]
   );
 
   const handleMouseLeave = useCallback(() => {
