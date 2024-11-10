@@ -64,7 +64,7 @@ export function CanvasControls({
               min={1}
               max={20}
               step={1}
-              className="w-full"
+              className="w-full cursor-pointer"
             />
           ) : (
             <Slider
@@ -73,7 +73,7 @@ export function CanvasControls({
               min={1}
               max={40}
               step={1}
-              className="w-full"
+              className="w-full cursor-pointer"
             />
           )}
         </div>
