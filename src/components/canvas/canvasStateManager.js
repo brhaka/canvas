@@ -35,15 +35,13 @@ export const handleStrokeUpdate = ({
     setLocalStrokes(prevlocalStrokes => [...prevlocalStrokes, ...newStrokes]);
   }
 
-  if (queue.length > 0) {
-    inBetween = true;
-    setStrokes(prevStrokes => [...prevStrokes, ...queue]);
-    queue = [];
+  if (queue.current.length > 0) {
+    inBetween.current = true;
+    setStrokes(prevStrokes => [...prevStrokes, ...queue.current]);
+    queue.current = [];
   } else {
-    inBetween = false;
+    inBetween.current = false;
   }
-
-  return inBetween;
 };
 
 export const handleStateSave = async ({
