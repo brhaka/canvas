@@ -166,7 +166,7 @@ export function CanvasDisplay({
   };
 
   const startDrawing = (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     setIsMouseDown(true);
     const point = getCoordinates(e);
 
@@ -188,7 +188,7 @@ export function CanvasDisplay({
   };
 
   const draw = (e) => {
-    e.preventDefault();
+    e?.preventDefault();
     if (!isDrawing || (!e.touches && !isMouseDown)) return;
 
     const newPoint = getCoordinates(e);
@@ -267,6 +267,40 @@ export function CanvasDisplay({
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
   }, []);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Add non-passive touch event listeners while keeping the existing ones
+    const options = { passive: false };
+
+    const handleTouchStart = (e) => {
+      e.preventDefault();
+      startDrawing(e);
+    };
+
+    const handleTouchMove = (e) => {
+      e.preventDefault();
+      draw(e);
+    };
+
+    const handleTouchEnd = (e) => {
+      e.preventDefault();
+      stopDrawing();
+    };
+
+    // Add these listeners alongside existing ones
+    canvas.addEventListener('touchstart', handleTouchStart, options);
+    canvas.addEventListener('touchmove', handleTouchMove, options);
+    canvas.addEventListener('touchend', handleTouchEnd, options);
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
+
   return (
     <div className="relative w-full h-full overflow-auto">
       <div className="absolute min-w-full min-h-full">
@@ -336,8 +370,8 @@ export function CanvasDisplay({
             variant="outline"
             size="icon"
             onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
+              e?.preventDefault();
+              e?.stopPropagation();
               if (zoom < MAX_ZOOM) {
                 setZoom(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
               }
@@ -353,8 +387,8 @@ export function CanvasDisplay({
             variant="outline"
             size="icon"
             onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
+              e?.preventDefault();
+              e?.stopPropagation();
               if (zoom > MIN_ZOOM) {
                 setZoom(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
               }
@@ -370,8 +404,8 @@ export function CanvasDisplay({
             variant="outline"
             size="icon"
             onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
+              e?.preventDefault();
+              e?.stopPropagation();
               setZoom(1);
             }}
             disabled={zoom === 1}
