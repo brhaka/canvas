@@ -1,9 +1,9 @@
 /* eslint-disable react/prop-types */
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import colors from "@/lib/colors.json"
@@ -83,7 +83,8 @@ export default function ColorSelector({
     name: colors[externalColor] || externalColor
   })
 
-  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const [showPicker, setShowPicker] = useState(false)
   const [suggestedColors, setSuggestedColors] = useState(
     Array.from({ length: 9 }, () => getRandomColor())
   )
@@ -106,11 +107,8 @@ export default function ColorSelector({
   }, [])
 
   return (
-    <HoverCard
-      openDelay={0}
-      closeDelay={500}
-    >
-      <HoverCardTrigger asChild>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
         <div className="w-10 h-10">
           <div
             className={cn(
@@ -120,20 +118,20 @@ export default function ColorSelector({
             style={{ backgroundColor: localColor.hex }}
           />
         </div>
-      </HoverCardTrigger>
-      <HoverCardContent
+      </PopoverTrigger>
+      <PopoverContent
         className="w-[300px] p-0"
         sideOffset={10}
         side="right"
         align="start"
       >
         <div className="w-full">
-          {showColorPicker ? (
+          {showPicker ? (
             <div className="p-4">
               <Button
                 variant="outline"
                 className="mb-2 w-full justify-start focus:outline-none hover:border-transparent text-foreground"
-                onClick={() => setShowColorPicker(false)}
+                onClick={() => setShowPicker(false)}
               >
                 ← Back
               </Button>
@@ -147,12 +145,12 @@ export default function ColorSelector({
               <div className="flex items-center gap-2 mb-4">
                 <ColorButton
                   color={localColor}
-                  className="flex-1"
+                  className="flex-1 focus:ring-0 focus:outline-none hover:border-transparent rounded-md"
                 />
                 <Button
                   variant="outline"
-                  className="h-[50px] aspect-square p-0 flex items-center justify-center text-foreground hover:bg-accent/10"
-                  onClick={() => setShowColorPicker(true)}
+                  className="h-[50px] aspect-square p-0 flex items-center justify-center text-foreground"
+                  onClick={() => setShowPicker(true)}
                 >
                   <Pipette className="h-5 w-5" />
                 </Button>
@@ -180,7 +178,7 @@ export default function ColorSelector({
             </div>
           )}
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      </PopoverContent>
+    </Popover>
   )
 }
