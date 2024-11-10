@@ -45,16 +45,16 @@ export const handleStrokeUpdate = ({
 };
 
 export const handleStateSave = async ({
-  strokes,
+  localStrokes, // we assume 'strokes' is here too
   setStrokes,
   uuid
 }) => {
-  if (strokes.length === 0) return;
+  if (localStrokes?.length === 0) return;
 
-  const strokesToSave = [...strokes];
+  const strokesToSave = [...localStrokes];
 
-  const success = await saveCanvasState(uuid, strokesToSave);
-  if (success) {
-    setStrokes([]);
-  }
+  await saveCanvasState(uuid, strokesToSave);
+  // if (success) {
+  //   setStrokes([]);
+  // }
 };

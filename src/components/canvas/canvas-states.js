@@ -19,11 +19,11 @@ export const loadCanvasState = async (uuid) => {
   }
 };
 
-export const saveCanvasState = async (uuid, newBaseStrokes) => {
+export const saveCanvasState = async (uuid, strokesToSave) => {
   try {
     console.log("Starting save to S3", {
-      newStrokesCount: newBaseStrokes.length,
-      currentStateSize: getJsonSize(newBaseStrokes)
+      newStrokesCount: strokesToSave.length,
+      currentStateSize: getJsonSize(strokesToSave)
     });
 
     const response = await fetch(`${LAMBDA_ENDPOINT}/${uuid}`, {
@@ -31,7 +31,7 @@ export const saveCanvasState = async (uuid, newBaseStrokes) => {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(newBaseStrokes)
+      body: JSON.stringify(strokesToSave)
     });
 
     if (!response.ok) {
@@ -39,7 +39,7 @@ export const saveCanvasState = async (uuid, newBaseStrokes) => {
     }
 
     console.log("Save completed successfully", {
-      savedStrokesCount: newBaseStrokes.length
+      savedStrokesCount: strokesToSave.length
     });
 
     return true;

@@ -23,7 +23,6 @@ export default function CollaborativeCanvas({ uuid }) {
   const [strokes, setStrokes] = useStateTogether("strokes", [])
   const [localStrokes, setLocalStrokes] = useState([])
   const [undoStack, setUndoStack] = useStateTogether("undoStack", [])
-  const [baseStrokes, setBaseStrokes] = useState([])
 
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [isReady, setIsReady] = useState(false)
@@ -97,7 +96,6 @@ export default function CollaborativeCanvas({ uuid }) {
 
     const initializeCanvas = async () => {
       const initialState = await loadCanvasState(uuid);
-      setBaseStrokes(initialState);
       setLocalStrokes(initialState);
     };
 
@@ -112,17 +110,20 @@ export default function CollaborativeCanvas({ uuid }) {
       setStrokes,
       queue,
       inBetween,
-      baseStrokes,
       saveState,
       MAX_STATE_SIZE_BYTES
     });
   }, [strokes]);
 
   const saveState = async () => {
+    // Check if all strokes are in localStrokes
+    const allStrokesPresent = strokes.every(stroke =>
+      localStrokes.some(localStroke => localStroke.id === stroke.id)
+    );
+    console.log('All strokes present in localStrokes:', allStrokesPresent);
+
     await handleStateSave({
-      strokes,
-      baseStrokes,
-      setBaseStrokes,
+      localStrokes,
       setStrokes,
       uuid
     });

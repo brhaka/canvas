@@ -25,11 +25,15 @@ export const addStroke = ({
     setLocalStrokes(prev => [...prev, ...splitStrokes]);
 
     // Handle each split stroke
+    let hasSaved = false;
     splitStrokes.forEach(splitStroke => {
       if (getJsonSize([...strokes, splitStroke]) >= MAX_STATE_SIZE_BYTES) {
         queue.current.push(splitStroke);
         console.log("adding to queue 1")
-        saveState();
+        if (!hasSaved) {
+          saveState();
+          hasSaved = true;
+        }
       } else if (inBetween.current) {
         queue.current.push(splitStroke);
         console.log("adding to queue 2")
