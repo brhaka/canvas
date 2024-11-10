@@ -25,9 +25,8 @@ export default function CollaborativeCanvas({ uuid }) {
   const [eraserSize, setEraserSize] = useState(20)
 
   const [strokes, setStrokes] = useStateTogether("strokes", [])
-  const [myStrokes, setMyStrokes] = useState([])
+  const [localStrokes, setLocalStrokes] = useState([])
   const [undoStack, setUndoStack] = useStateTogether("undoStack", [])
-  const [baseStrokes, setBaseStrokes] = useState([])
 
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [isReady, setIsReady] = useState(false)
@@ -79,8 +78,7 @@ export default function CollaborativeCanvas({ uuid }) {
 
     const initializeCanvas = async () => {
       const initialState = await loadCanvasState(uuid);
-      setBaseStrokes(initialState);
-      setMyStrokes(initialState);
+      setLocalStrokes(initialState);
     };
 
     initializeCanvas();
@@ -89,12 +87,11 @@ export default function CollaborativeCanvas({ uuid }) {
   useEffect(() => {
     handleStrokeUpdate({
       strokes,
-      myStrokes,
-      setMyStrokes,
+      localStrokes,
+      setLocalStrokes,
       setStrokes,
       queue,
       inBetween,
-      baseStrokes,
       saveState,
       MAX_STATE_SIZE_BYTES
     });
@@ -103,8 +100,6 @@ export default function CollaborativeCanvas({ uuid }) {
   const saveState = async () => {
     await handleStateSave({
       strokes,
-      baseStrokes,
-      setBaseStrokes,
       setStrokes,
       uuid
     });
@@ -122,8 +117,8 @@ export default function CollaborativeCanvas({ uuid }) {
 
   // Strokes synchronization effect
   useEffect(() => {
-    const myIds = myStrokes.map(stroke => stroke.id);
-    setMyStrokes([...myStrokes, ...strokes.filter(stroke => !myIds.includes(stroke.id))]);
+    const myIds = localStrokes.map(stroke => stroke.id);
+    setLocalStrokes([...localStrokes, ...strokes.filter(stroke => !myIds.includes(stroke.id))]);
 
     if (queue.length > 0) {
       inBetween = true;
@@ -139,7 +134,7 @@ export default function CollaborativeCanvas({ uuid }) {
       stroke,
       strokes,
       setStrokes,
-      setMyStrokes,
+      setLocalStrokes,
       setUndoStack,
       queue,
       inBetween,
@@ -200,7 +195,7 @@ export default function CollaborativeCanvas({ uuid }) {
       <div className="pr-8 pl-8 ml-10 mr-7 scrollbar-hide">
         <CanvasDisplay
           canvasRef={canvasRef}
-          strokes={myStrokes}
+          strokes={localStrokes}
           activeTool={activeTool}
           color={color}
           brushSize={currentSize}

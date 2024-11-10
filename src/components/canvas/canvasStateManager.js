@@ -5,12 +5,11 @@ const MAX_STROKES_BEFORE_SAVE = 15;
 
 export const handleStrokeUpdate = ({
   strokes,
-  myStrokes,
-  setMyStrokes,
+  localStrokes,
+  setLocalStrokes,
   setStrokes,
   queue,
   inBetween,
-  baseStrokes,
   saveState,
   MAX_STATE_SIZE_BYTES
 }) => {
@@ -29,11 +28,11 @@ export const handleStrokeUpdate = ({
   }
 
   // Handle new strokes
-  const myIds = myStrokes.map(stroke => stroke.id);
+  const myIds = localStrokes.map(stroke => stroke.id);
   const newStrokes = strokes.filter(stroke => !myIds.includes(stroke.id));
 
   if (newStrokes.length > 0) {
-    setMyStrokes(prevMyStrokes => [...prevMyStrokes, ...newStrokes]);
+    setLocalStrokes(prevlocalStrokes => [...prevlocalStrokes, ...newStrokes]);
   }
 
   if (queue.length > 0) {
@@ -49,22 +48,15 @@ export const handleStrokeUpdate = ({
 
 export const handleStateSave = async ({
   strokes,
-  baseStrokes,
-  setBaseStrokes,
   setStrokes,
   uuid
 }) => {
   if (strokes.length === 0) return;
 
-  // Add a small random delay to prevent race conditions between users
-  await new Promise(resolve => setTimeout(resolve, Math.random() * 1000));
-
   const strokesToSave = [...strokes];
-  const newBaseStrokes = [...baseStrokes, ...strokesToSave];
 
-  const success = await saveCanvasState(uuid, newBaseStrokes);
+  const success = await saveCanvasState(uuid, strokesToSave);
   if (success) {
-    setBaseStrokes(newBaseStrokes);
     setStrokes([]);
   }
 };
