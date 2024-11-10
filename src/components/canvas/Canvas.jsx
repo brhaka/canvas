@@ -9,6 +9,7 @@ import { handleStrokeUpdate, handleStateSave } from './canvasStateManager';
 import { addStroke } from './addStroke';
 import ShareButton from "@/components/share-button"
 import { getJsonSize } from './utils';
+import './canvas-styles.css'
 
 const MAX_STATE_SIZE_BYTES = 4000;
 
@@ -22,9 +23,12 @@ export default function CollaborativeCanvas({ uuid }) {
   const [strokes, setStrokes] = useStateTogether("strokes", [])
   const [localStrokes, setLocalStrokes] = useState([])
   const [undoStack, setUndoStack] = useStateTogether("undoStack", [])
+  const [baseStrokes, setBaseStrokes] = useState([])
 
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [isReady, setIsReady] = useState(false)
+
+  const myUserId = uuidv4();
 
   const hasLoaded = useRef(false);
   const inBetween = useRef(false);
@@ -43,15 +47,22 @@ export default function CollaborativeCanvas({ uuid }) {
     userSpaceLimited: false
   });
 
+  const [userCountChanged, setUserCountChanged] = useState(false);
+
+  // Add effect to trigger animation when user count changes
+  useEffect(() => {
+    setUserCountChanged(true);
+    const timer = setTimeout(() => setUserCountChanged(false), 300);
+    return () => clearTimeout(timer);
+  }, [connectedUsers.length]);
+
   // User configuration effect
   useEffect(() => {
     if (connectedUsers.length > 0 && connectedUsers.find(user => user.isYou) && !isReady) {
       const isFirstUser = connectedUsers.length === 1;
-      console.log("Setting ready, isFirstUser:", isFirstUser);
       setIsReady(true);
 
       if (!userConfig.userId) {
-        console.log("Showing config modal, isFirstUser:", isFirstUser);
         setShowConfigModal(true);
       }
     }
@@ -86,6 +97,7 @@ export default function CollaborativeCanvas({ uuid }) {
 
     const initializeCanvas = async () => {
       const initialState = await loadCanvasState(uuid);
+      setBaseStrokes(initialState);
       setLocalStrokes(initialState);
     };
 
@@ -100,6 +112,7 @@ export default function CollaborativeCanvas({ uuid }) {
       setStrokes,
       queue,
       inBetween,
+      baseStrokes,
       saveState,
       MAX_STATE_SIZE_BYTES
     });
@@ -108,20 +121,12 @@ export default function CollaborativeCanvas({ uuid }) {
   const saveState = async () => {
     await handleStateSave({
       strokes,
+      baseStrokes,
+      setBaseStrokes,
       setStrokes,
       uuid
     });
   };
-
-  // User configuration effect
-  useEffect(() => {
-    if (connectedUsers.length > 0 && !isReady) {
-      setIsReady(true)
-      if (!userConfig.userId) {
-        setShowConfigModal(true)
-      }
-    }
-  }, [connectedUsers, userConfig.userId, isReady])
 
   // Strokes synchronization effect
   useEffect(() => {
@@ -174,13 +179,42 @@ export default function CollaborativeCanvas({ uuid }) {
 
   return (
     <div className="fixed inset-0 w-screen h-screen overflow-hidden">
-      <p className="text-center text-4xl font-medium mt-4 mb-6">
-        Canvas
-      </p>
+      <div className="relative text-center mt-4 mb-6">
+        <p className="text-4xl font-medium">
+          Canvas
+        </p>
 
-      <div className="pr-8 pl-8 ml-10 mr-7">
-        <ShareButton url={`${window.location.href}`} />
+        {/* Mobile view - shown below Canvas title */}
+        <div className="md:hidden mt-2">
+          <div className={`inline-flex items-center gap-2 bg-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-full ${
+            userCountChanged ? 'animate-pop' : ''
+          }`}>
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span className="text-sm font-medium">
+              {connectedUsers.length} {connectedUsers.length === 1 ? 'user' : 'users'} online
+            </span>
+          </div>
+        </div>
+
+        {/* Desktop view - shown to the right */}
+        <div className="hidden md:block absolute right-8 top-1/2 -translate-y-1/2">
+          <div className="flex items-center gap-4">
+            <div className={`flex items-center gap-2 bg-secondary/80 backdrop-blur-sm pl-3 pr-10 mr-6 mt-3 py-1.5 rounded-full ${
+              userCountChanged ? 'animate-pop' : ''
+            }`}>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-sm font-medium">
+                {connectedUsers.length} {connectedUsers.length === 1 ? 'user' : 'users'} online
+              </span>
+            </div>
+            <ShareButton url={`${window.location.href}`} />
+          </div>
+        </div>
+      </div>
+
+      <div className="pr-8 pl-8 ml-10 mr-7 scrollbar-hide">
         <CanvasDisplay
+          userId={myUserId}
           canvasRef={canvasRef}
           strokes={localStrokes}
           activeTool={activeTool}
@@ -204,6 +238,14 @@ export default function CollaborativeCanvas({ uuid }) {
           canUndo={(undoStack || []).length > 0}
         />
       </div>
+
+      {/* User Configuration Modal */}
+      {/* {showConfigModal && (
+        <UserConfigModal
+          onSubmit={handleConfigSubmit}
+          isHost={connectedUsers.length === 1}
+        />
+      )} */}
     </div>
   )
 }
