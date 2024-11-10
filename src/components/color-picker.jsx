@@ -183,14 +183,16 @@ export default function ColorPicker({
       </div>
 
       {/* Rainbow slider */}
-      <div className="relative w-full h-6">
+      <div
+        className="relative w-full h-6"
+        onMouseUp={handleMouseEvents.onMouseUp}
+        onMouseLeave={handleMouseEvents.onMouseUp}
+      >
         <canvas
           ref={refs.slider}
           className="w-full h-full rounded-md cursor-pointer"
           onMouseDown={(e) => handleMouseEvents.onMouseDown(e, true)}
           onMouseMove={(e) => handleMouseEvents.onMouseMove(e, true)}
-          onMouseUp={handleMouseEvents.onMouseUp}
-          onMouseLeave={handleMouseEvents.onMouseUp}
         />
       </div>
 
