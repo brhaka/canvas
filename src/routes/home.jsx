@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-// import ShareButton from '@/components/share-button.jsx';
 import { useEffect, useRef } from 'react';
 
 export default function Home() {

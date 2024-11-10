@@ -1,4 +1,4 @@
-import React from 'react';
+// import React from 'react';
 import PropTypes from 'prop-types';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from "@/components/ui/button";
@@ -26,9 +26,12 @@ const ShareButton = ({ url }) => {
   // Generate a unique sharing URL with UUID
   // Using useMemo to keep the same UUID during re-renders
   const sharingUrl = useMemo(() => {
-    const baseUrl = url || window.location.origin;
-    const uuid = uuidv4();
-    return `${baseUrl}/canvas/${uuid}`;
+    if (!url) {
+      const uuid = uuidv4();
+      return `${window.location.origin}/canvas/${uuid}`;
+    } else {
+      return url;
+    }
   }, [url]);
 
   /**
@@ -45,10 +48,12 @@ const ShareButton = ({ url }) => {
     <Dialog>
       {/* Share button trigger - made touch-friendly */}
       <DialogTrigger asChild>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="icon"
-          className="min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] lg:min-w-[48px] lg:min-h-[48px] text-primary hover:text-primary-foreground"
+          className="min-w-[40px] min-h-[40px] md:min-w-[44px] md:min-h-[44px] lg:min-w-[48px] lg:min-h-[48px]
+            text-primary hover:text-primary-foreground hover:bg-primary
+            border-2 hover:border-primary z-50"
         >
           <Share className="h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6" />
         </Button>
@@ -61,7 +66,7 @@ const ShareButton = ({ url }) => {
             Share via QR Code
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="flex flex-col items-center gap-3 sm:gap-4 md:gap-6">
           {/* Responsive QR Code container */}
           <div className="bg-white/50 backdrop-blur-sm p-3 sm:p-4 md:p-6 lg:p-8 rounded-xl border shadow-lg w-full max-w-[240px] sm:max-w-[280px] md:max-w-[320px] lg:max-w-[360px] mx-auto">
@@ -82,12 +87,12 @@ const ShareButton = ({ url }) => {
           >
             {copied ? (
               <>
-                <Check className="h-4 w-4 md:h-5 md:w-5" /> 
+                <Check className="h-4 w-4 md:h-5 md:w-5" />
                 <span className="text-sm md:text-base">Copied!</span>
               </>
             ) : (
               <>
-                <Copy className="h-4 w-4 md:h-5 md:w-5" /> 
+                <Copy className="h-4 w-4 md:h-5 md:w-5" />
                 <span className="text-sm md:text-base">Copy Link</span>
               </>
             )}

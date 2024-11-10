@@ -16,7 +16,7 @@ export default function Canvas() {
       }}
     >
 
-      <CollaborativeCanvas />
+      <CollaborativeCanvas uuid={uuid} />
       <Link to="/">Go back to home</Link>
     </ReactTogether>
     </>

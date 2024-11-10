@@ -5,11 +5,12 @@ import { CanvasDisplay } from './CanvasDisplay'
 import { useStateTogether } from 'react-together'
 import { TOOL_TYPES } from './types'
 import _ from 'lodash'
+import ShareButton from '@/components/share-button';
 
 let queue = [];
 let inBetween = false;
 
-export default function CollaborativeCanvas() {
+export default function CollaborativeCanvas({ uuid }) {
   const canvasRef = useRef(null)
   const [activeTool, setActiveTool] = useState(TOOL_TYPES.BRUSH)
   const [color, setColor] = useState(null)
@@ -70,9 +71,12 @@ export default function CollaborativeCanvas() {
   return (
     <Card className="fixed inset-0 w-screen h-screen overflow-hidden">
       <CardHeader className="absolute top-0 left-0 right-0 z-10 p-3 sm:p-4 lg:p-6 h-[60px] bg-background/95 backdrop-blur-sm">
-        <CardTitle className="text-xl sm:text-2xl lg:text-3xl text-center sm:text-left">
-          Canvas
-        </CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-xl sm:text-2xl lg:text-3xl">
+            Canvas
+          </CardTitle>
+          <ShareButton url={`${window.location.href}`} />
+        </div>
       </CardHeader>
 
       <CardContent className="h-full pt-[60px] pb-[80px] sm:pb-[100px]">
