@@ -1,9 +1,9 @@
 /* eslint-disable react/prop-types */
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card"
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import colors from "@/lib/colors.json"
@@ -48,7 +48,7 @@ function ColorButton({ color, onClick, className }) {
       className={cn(
         "flex flex-col items-center p-2 rounded-md border focus:outline-none transition-opacity hover:border-transparent",
         // Only apply hover effects and pointer cursor if clickable
-        isClickable && "hover:opacity-90 cursor-pointer",
+        isClickable && "transition-transform hover:scale-110 cursor-pointer",
         !isClickable && "cursor-default",
         getContrastColor(color.hex),
         className
@@ -83,7 +83,8 @@ export default function ColorSelector({
     name: colors[externalColor] || externalColor
   })
 
-  const [showColorPicker, setShowColorPicker] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const [showPicker, setShowPicker] = useState(false)
   const [suggestedColors, setSuggestedColors] = useState(
     Array.from({ length: 9 }, () => getRandomColor())
   )
@@ -106,32 +107,31 @@ export default function ColorSelector({
   }, [])
 
   return (
-    <HoverCard
-      openDelay={0}
-      closeDelay={500}
-    >
-      <HoverCardTrigger asChild>
-        <div
-          className={cn(
-            "w-[35px] h-[35px] rounded-md cursor-pointer border border-input hover:opacity-90 transition-opacity",
-            className
-          )}
-          style={{ backgroundColor: localColor.hex }}
-        />
-      </HoverCardTrigger>
-      <HoverCardContent
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <div className="w-10 h-10">
+          <div
+            className={cn(
+              "w-full h-full rounded-md cursor-pointer border border-input transition-transform hover:scale-110",
+              className
+            )}
+            style={{ backgroundColor: localColor.hex }}
+          />
+        </div>
+      </PopoverTrigger>
+      <PopoverContent
         className="w-[300px] p-0"
-        sideOffset={5}
+        sideOffset={10}
         side="right"
         align="start"
       >
         <div className="w-full">
-          {showColorPicker ? (
+          {showPicker ? (
             <div className="p-4">
               <Button
                 variant="outline"
-                className="mb-2 w-full justify-start focus:outline-none hover:border-transparent"
-                onClick={() => setShowColorPicker(false)}
+                className="mb-2 w-full justify-start focus:outline-none hover:border-transparent text-foreground"
+                onClick={() => setShowPicker(false)}
               >
                 ← Back
               </Button>
@@ -145,12 +145,12 @@ export default function ColorSelector({
               <div className="flex items-center gap-2 mb-4">
                 <ColorButton
                   color={localColor}
-                  className="flex-1"
+                  className="flex-1 focus:ring-0 focus:outline-none hover:border-transparent rounded-md"
                 />
                 <Button
                   variant="outline"
-                  className="h-[50px] aspect-square p-0 flex items-center justify-center text-foreground hover:bg-accent/10"
-                  onClick={() => setShowColorPicker(true)}
+                  className="h-[50px] aspect-square p-0 flex items-center justify-center text-foreground"
+                  onClick={() => setShowPicker(true)}
                 >
                   <Pipette className="h-5 w-5" />
                 </Button>
@@ -160,7 +160,7 @@ export default function ColorSelector({
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-6 w-6 p-0 focus:outline-none hover:border-transparent"
+                  className="h-6 w-6 p-0 focus:outline-none hover:border-transparent text-foreground"
                   onClick={regenerateSuggestions}
                 >
                   <RefreshCw className="h-4 w-4" />
@@ -178,7 +178,7 @@ export default function ColorSelector({
             </div>
           )}
         </div>
-      </HoverCardContent>
-    </HoverCard>
+      </PopoverContent>
+    </Popover>
   )
 }

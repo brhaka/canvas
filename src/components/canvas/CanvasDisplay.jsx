@@ -238,15 +238,26 @@ export function CanvasDisplay({
         ...currentStroke,
         points: simplifyPoints(currentStroke.points)
       };
-      console.log('Original points:', currentStroke.points.length);
-      console.log('Simplified points:', simplifiedStroke.points.length);
-      addStroke(simplifiedStroke);
-    }
 
-    setCurrentStroke(null);
-    currentStrokeRef.current = null;
-    lastPointRef.current = null;
-    setIsDrawing(false);
+      // Remove console.logs that might cause delay
+      // console.log('Original points:', currentStroke.points.length);
+      // console.log('Simplified points:', simplifiedStroke.points.length);
+
+      // Update these state changes to happen simultaneously
+      setCurrentStroke(null);
+      currentStrokeRef.current = null;
+      lastPointRef.current = null;
+      setIsDrawing(false);
+
+      // Move addStroke after state updates
+      addStroke(simplifiedStroke);
+    } else {
+      // If stroke is too short, just reset states
+      setCurrentStroke(null);
+      currentStrokeRef.current = null;
+      lastPointRef.current = null;
+      setIsDrawing(false);
+    }
   };
 
   // Add global mouse up handler
@@ -316,10 +327,22 @@ export function CanvasDisplay({
             setIsDrawing(true);
           }
         }}
-        onTouchStart={startDrawing}
-        onTouchMove={draw}
-        onTouchEnd={stopDrawing}
-        onTouchCancel={stopDrawing}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          startDrawing(e);
+        }}
+        onTouchMove={(e) => {
+          e.preventDefault();
+          draw(e);
+        }}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          stopDrawing();
+        }}
+        onTouchCancel={(e) => {
+          e.preventDefault();
+          stopDrawing();
+        }}
       />
 
       {/* Updated zoom controls with better mobile positioning and touch handling */}

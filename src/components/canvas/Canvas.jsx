@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CanvasControls } from './CanvasControls'
 import { CanvasDisplay } from './CanvasDisplay'
 import { useStateTogether, useStateTogetherWithPerUserValues, useConnectedUsers } from 'react-together'
-import ShareButton from '@/components/share-button';
 import { TOOL_TYPES } from './types'
 import { v4 as uuidv4 } from 'uuid';
 import { UserConfigModal } from './UserConfigModal'
 import { loadCanvasState } from './canvas-states';
 import { handleStrokeUpdate, handleStateSave } from './canvasStateManager';
 import { addStroke } from './addStroke';
+import ShareButton from "@/components/share-button"
 
 let queue = [];
 let inBetween = false;
@@ -173,52 +173,37 @@ export default function CollaborativeCanvas({ uuid }) {
   const currentSize = activeTool === TOOL_TYPES.ERASER ? eraserSize : brushSize
 
   return (
-    <>
-      {showConfigModal && isReady && (
-        <UserConfigModal
-          isHost={connectedUsers.length === 1}
-          onSubmit={handleConfigSubmit}
-          canvasSettings={canvasSettings}
+    <div className="fixed inset-0 w-screen h-screen overflow-hidden">
+      <p className="text-center text-4xl font-medium mt-4 mb-6">
+        Canvas
+      </p>
+
+      <div className="pr-8 pl-8 ml-10">
+        <ShareButton url={`${window.location.href}`} />
+        <CanvasDisplay
+          canvasRef={canvasRef}
+          strokes={myStrokes}
+          activeTool={activeTool}
+          color={color}
+          brushSize={currentSize}
+          addStroke={handleAddStroke}
         />
-      )}
-      <Card className="fixed inset-0 w-screen h-screen overflow-hidden">
-        <CardHeader className="absolute top-0 left-0 right-0 z-10 p-3 sm:p-4 lg:p-6 h-[60px] bg-background/95 backdrop-blur-sm">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-xl sm:text-2xl lg:text-3xl">
-              Canvas
-            </CardTitle>
-            <ShareButton url={`${window.location.href}`} />
-          </div>
-        </CardHeader>
+      </div>
 
-        <CardContent className="h-full pt-[60px] pb-[80px] sm:pb-[100px]">
-          <div className="relative w-full h-full">
-            <CanvasDisplay
-              canvasRef={canvasRef}
-              strokes={myStrokes}
-              activeTool={activeTool}
-              color={color}
-              brushSize={currentSize}
-              addStroke={handleAddStroke}
-            />
-          </div>
-        </CardContent>
-
-        <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-4 bg-background/95 backdrop-blur-sm">
-          <CanvasControls
-            color={color}
-            setColor={setColor}
-            brushSize={brushSize}
-            setBrushSize={setBrushSize}
-            eraserSize={eraserSize}
-            setEraserSize={setEraserSize}
-            activeTool={activeTool}
-            setActiveTool={setActiveTool}
-            onUndo={handleUndo}
-            canUndo={(undoStack || []).length > 0}
-          />
-        </div>
-      </Card>
-    </>
+      <div className="absolute left-0 top-1/2 -translate-y-1/2">
+        <CanvasControls
+          color={color}
+          setColor={setColor}
+          brushSize={brushSize}
+          setBrushSize={setBrushSize}
+          eraserSize={eraserSize}
+          setEraserSize={setEraserSize}
+          activeTool={activeTool}
+          setActiveTool={setActiveTool}
+          onUndo={handleUndo}
+          canUndo={(undoStack || []).length > 0}
+        />
+      </div>
+    </div>
   )
 }
