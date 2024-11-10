@@ -10,6 +10,7 @@ import { loadCanvasState } from './canvas-states';
 import { handleStrokeUpdate, handleStateSave } from './canvasStateManager';
 import { addStroke } from './addStroke';
 import ShareButton from "@/components/share-button"
+import './canvas-styles.css'
 
 let queue = [];
 let inBetween = false;
@@ -42,9 +43,18 @@ export default function CollaborativeCanvas({ uuid }) {
     squares: []
   });
 
-  const [canvasSettings, setCanvasSettings] = useStateTogether('canvasSettings', {
-    userSpaceLimited: false
-  });
+  // const [canvasSettings, setCanvasSettings] = useStateTogether('canvasSettings', {
+  //   userSpaceLimited: false
+  // });
+
+  const [userCountChanged, setUserCountChanged] = useState(false);
+
+  // Add effect to trigger animation when user count changes
+  useEffect(() => {
+    setUserCountChanged(true);
+    const timer = setTimeout(() => setUserCountChanged(false), 300);
+    return () => clearTimeout(timer);
+  }, [connectedUsers.length]);
 
   // User configuration effect
   useEffect(() => {
@@ -60,27 +70,28 @@ export default function CollaborativeCanvas({ uuid }) {
     }
   }, [connectedUsers, userConfig.userId, isReady]);
 
-  const handleConfigSubmit = ({ username, limitUserSpace }) => {
-    const isFirstUser = connectedUsers.length === 1;
-    const currentUser = connectedUsers.find(user => user.isYou);
 
-    // Set user-specific config
-    setUserConfig({
-      userId: currentUser?.userId || uuidv4(),
-      userName: username,
-      isHost: isFirstUser,
-      squares: []
-    });
+  // const handleConfigSubmit = ({ username, limitUserSpace }) => {
+  //   const isFirstUser = connectedUsers.length === 1;
+  //   const currentUser = connectedUsers.find(user => user.isYou);
 
-    // If user is host, set the global canvas settings
-    if (isFirstUser) {
-      setCanvasSettings({
-        userSpaceLimited: limitUserSpace
-      });
-    }
+  //   // Set user-specific config
+  //   setUserConfig({
+  //     userId: currentUser?.userId || uuidv4(),
+  //     userName: username,
+  //     isHost: isFirstUser,
+  //     squares: []
+  //   });
 
-    setShowConfigModal(false);
-  };
+  //   // If user is host, set the global canvas settings
+  //   if (isFirstUser) {
+  //     setCanvasSettings({
+  //       userSpaceLimited: limitUserSpace
+  //     });
+  //   }
+
+  //   setShowConfigModal(false);
+  // };
 
   // Simplified initial state loading
   useEffect(() => {
@@ -174,12 +185,45 @@ export default function CollaborativeCanvas({ uuid }) {
 
   return (
     <div className="fixed inset-0 w-screen h-screen overflow-hidden">
-      <p className="text-center text-4xl font-medium mt-4 mb-6">
-        Canvas
-      </p>
+      <div className="relative text-center mt-4 mb-6">
+        <p className="text-4xl font-medium">
+          Canvas
+        </p>
 
-      <div className="pr-8 pl-8 ml-10 mr-7">
-        <ShareButton url={`${window.location.href}`} />
+        {/* Mobile view - shown below Canvas title */}
+        <div className="md:hidden mt-2">
+          <div className={`inline-flex items-center gap-2 bg-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-full ${
+            userCountChanged ? 'animate-pop' : ''
+          }`}>
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span className="text-sm font-medium">
+              {connectedUsers.length} {connectedUsers.length === 1 ? 'user' : 'users'} online
+            </span>
+          </div>
+        </div>
+
+        {/* Desktop view - shown to the right */}
+        <div className="hidden md:block absolute right-8 top-1/2 -translate-y-1/2">
+          <div className="flex items-center gap-4">
+            <div className={`flex items-center gap-2 bg-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-full ${
+              userCountChanged ? 'animate-pop' : ''
+            }`}>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-sm font-medium">
+                {connectedUsers.length} {connectedUsers.length === 1 ? 'user' : 'users'} online
+              </span>
+            </div>
+            <ShareButton url={`${window.location.href}`} />
+          </div>
+        </div>
+      </div>
+
+      <div className="pr-8 pl-8 ml-10 mr-7 scrollbar-hide">
+        {/* Show ShareButton below status on mobile */}
+        <div className="md:hidden flex justify-end mb-4">
+          <ShareButton url={`${window.location.href}`} />
+        </div>
+
         <CanvasDisplay
           canvasRef={canvasRef}
           strokes={myStrokes}
