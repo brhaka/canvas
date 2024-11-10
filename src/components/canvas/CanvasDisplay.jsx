@@ -25,11 +25,12 @@ export function CanvasDisplay({
   const [zoom, setZoom] = useState(1);
   const CANVAS_WIDTH = 6000;
   const CANVAS_HEIGHT = 6000;
-  const MIN_ZOOM = 0.5;
+  const MIN_ZOOM = 0.1;
   const MAX_ZOOM = 5;
   const ZOOM_STEP = 0.2;
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [transform, setTransform] = useState({ x: 0, y: 0 });
+  const containerRef = useRef(null);
 
   // Enhanced canvas resize handling
   useEffect(() => {
@@ -268,7 +269,24 @@ export function CanvasDisplay({
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
   }, []);
 
-  // Update canvas container style to handle zoom and pan
+  // Calculate initial zoom based on window size
+  useEffect(() => {
+    if (containerRef.current) {
+      const container = containerRef.current;
+      
+      // Get the container dimensions
+      const containerWidth = container.offsetWidth;
+      const containerHeight = container.offsetHeight;
+
+      // Calculate zoom needed to fit the canvas width
+      const horizontalZoom = containerWidth / CANVAS_WIDTH;
+      
+      // Set initial zoom to match the container width
+      setZoom(horizontalZoom);
+    }
+  }, []);
+
+  // Update containerStyle to center the canvas
   const containerStyle = {
     transform: `scale(${zoom})`,
     transformOrigin: '0 0',
@@ -291,7 +309,15 @@ export function CanvasDisplay({
     e.preventDefault();
     e.stopPropagation();
     setZoom(prevZoom => {
-      const newZoom = Math.max(prevZoom - ZOOM_STEP, MIN_ZOOM);
+      // Calculate minimum zoom based on container width
+      const containerWidth = containerRef.current?.offsetWidth || 0;
+      const minZoom = containerWidth / CANVAS_WIDTH;
+      
+      // Use the larger of our calculated minZoom and MIN_ZOOM
+      const effectiveMinZoom = Math.max(minZoom, MIN_ZOOM);
+      
+      // Apply zoom reduction but don't go below effectiveMinZoom
+      const newZoom = Math.max(prevZoom - ZOOM_STEP, effectiveMinZoom);
       return newZoom;
     });
   }, []);
@@ -304,7 +330,11 @@ export function CanvasDisplay({
   }, []);
 
   return (
-    <div className="relative w-full h-full overflow-auto">
+    <div 
+      ref={containerRef}
+      className="relative w-full h-full overflow-auto"
+      style={{ height: 'calc(100vh - 64px)' }}
+    >
       <div 
         className="absolute"
         style={containerStyle}
