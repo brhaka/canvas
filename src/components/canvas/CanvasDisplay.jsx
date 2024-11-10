@@ -71,6 +71,7 @@ export function CanvasDisplay({
   const MIN_ZOOM = 0.5;
   const MAX_ZOOM = 2;
   const ZOOM_STEP = 0.1;
+  const [isMouseDown, setIsMouseDown] = useState(false);
 
   // Enhanced canvas resize handling
   useEffect(() => {
@@ -204,26 +205,6 @@ export function CanvasDisplay({
     })
   }, [strokes, canvasSize])
 
-    // Draw current stroke if it exists
-    // if (currentStrokeRef.current?.points.length >= 2) {
-    //   const points = currentStrokeRef.current.points
-    //   for (let i = 1; i < points.length; i++) {
-    //     drawLine(
-    //       offscreenContext,
-    //       points[i - 1],
-    //       points[i],
-    //       {
-    //         type: currentStrokeRef.current.type,
-    //         color: currentStrokeRef.current.style.color,
-    //         size: currentStrokeRef.current.style.size
-    //       }
-    //     )
-    //   }
-    // }
-
-    // // Draw the final result to the main canvas
-    // context.drawImage(offscreenCanvas, 0, 0)
-
   useEffect(() => {
     renderStrokes();
   }, [renderStrokes, canvasSize]);
@@ -254,6 +235,7 @@ export function CanvasDisplay({
 
   const startDrawing = (e) => {
     e.preventDefault();
+    setIsMouseDown(true);
     const point = getCoordinates(e);
 
     const newStroke = {
@@ -275,7 +257,7 @@ export function CanvasDisplay({
 
   const draw = (e) => {
     e.preventDefault();
-    if (!isDrawing) return;
+    if (!isDrawing || (!e.touches && !isMouseDown)) return;
 
     const newPoint = getCoordinates(e);
     const lastPoint = lastPointRef.current;
@@ -322,6 +304,8 @@ export function CanvasDisplay({
   const stopDrawing = () => {
     if (!isDrawing || !currentStroke) return;
 
+    setIsMouseDown(false);
+
     // Only add stroke if it has at least 2 points
     if (currentStroke.points.length >= 2) {
       // Simplify the points before adding the stroke
@@ -354,7 +338,18 @@ export function CanvasDisplay({
         onMouseDown={startDrawing}
         onMouseMove={draw}
         onMouseUp={stopDrawing}
-        onMouseOut={stopDrawing}
+        onMouseOut={(e) => {
+          if (isDrawing) {
+            setIsDrawing(false);
+          }
+        }}
+        onMouseEnter={(e) => {
+          if (isMouseDown) {
+            setIsDrawing(true);
+            const point = getCoordinates(e);
+            lastPointRef.current = point;
+          }
+        }}
         onTouchStart={startDrawing}
         onTouchMove={draw}
         onTouchEnd={stopDrawing}
