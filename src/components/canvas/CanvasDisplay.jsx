@@ -52,6 +52,48 @@ const simplifyPoints = (points, tolerance = 2) => {
   return [points[0], points[points.length - 1]];
 };
 
+// Add this smoothing function before renderStrokes
+const smoothStroke = (points, tension = 0.5) => {
+  if (points.length < 2) return points;
+
+  const smoothedPoints = [];
+  const numSegments = 16; // Number of segments between each pair of points
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(i - 1, 0)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(i + 2, points.length - 1)];
+
+    // Generate points for each segment
+    for (let t = 0; t < (i === points.length - 2 ? numSegments + 1 : numSegments); t++) {
+      const t1 = t / numSegments;
+
+      // Catmull-Rom spline calculation
+      const t2 = t1 * t1;
+      const t3 = t2 * t1;
+
+      const x = 0.5 * (
+        (2 * p1.x) +
+        (-p0.x + p2.x) * t1 +
+        (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+        (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3
+      );
+
+      const y = 0.5 * (
+        (2 * p1.y) +
+        (-p0.y + p2.y) * t1 +
+        (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+        (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3
+      );
+
+      smoothedPoints.push({ x, y });
+    }
+  }
+
+  return smoothedPoints;
+};
+
 export function CanvasDisplay({
   canvasRef,
   strokes,
@@ -171,38 +213,41 @@ export function CanvasDisplay({
   }
 
   const renderStrokes = useCallback(() => {
-    const canvas = canvasRef.current
-    if (!canvas || !initialSizeRef.current) return
+    const canvas = canvasRef.current;
+    if (!canvas || !initialSizeRef.current) return;
 
-    const context = canvas.getContext('2d')
-    const dpr = window.devicePixelRatio || 1
+    const context = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
 
     // Clear the canvas
-    context.clearRect(0, 0, canvas.width, canvas.height)
+    context.clearRect(0, 0, canvas.width, canvas.height);
 
     // Set up the context for the current canvas size
-    context.setTransform(1, 0, 0, 1, 0, 0)
-    context.scale(dpr * canvasSize.scaleX, dpr * canvasSize.scaleY)
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.scale(dpr * canvasSize.scaleX, dpr * canvasSize.scaleY);
 
-    // Create a single offscreen canvas for all strokes
     // Render all strokes
     strokes.forEach(stroke => {
-      if (!stroke.points || stroke.points.length < 2) return
+      if (!stroke.points || stroke.points.length < 2) return;
 
-      for (let i = 1; i < stroke.points.length; i++) {
+      // Generate smoothed points for rendering
+      const smoothedPoints = smoothStroke(stroke.points);
+
+      // Draw using smoothed points
+      for (let i = 1; i < smoothedPoints.length; i++) {
         drawLine(
           context,
-          stroke.points[i - 1],
-          stroke.points[i],
+          smoothedPoints[i - 1],
+          smoothedPoints[i],
           {
             type: stroke.type,
             color: stroke.style.color,
             size: stroke.style.size
           }
-        )
+        );
       }
-    })
-  }, [strokes, canvasSize])
+    });
+  }, [strokes, canvasSize]);
 
   useEffect(() => {
     renderStrokes();

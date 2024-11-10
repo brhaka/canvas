@@ -19,10 +19,21 @@ const getContrastColor = (hex) => {
   return brightness > 128 ? 'text-black' : 'text-white'
 }
 
+const calculateBrightness = (hex) => {
+  const rgb = hex.replace('#', '').match(/.{2}/g)
+    .map(x => parseInt(x, 16))
+  return (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000
+}
+
 const getRandomColor = () => {
   const hexCodes = Object.entries(colors)
-  const [hex, name] = hexCodes[Math.floor(Math.random() * hexCodes.length)]
-  return { hex, name }
+  let randomColor
+  do {
+    const [hex, name] = hexCodes[Math.floor(Math.random() * hexCodes.length)]
+    randomColor = { hex, name }
+    // Avoid colors with brightness > 200 (adjust this threshold as needed)
+  } while (calculateBrightness(randomColor.hex) > 200)
+  return randomColor
 }
 
 // Constants
