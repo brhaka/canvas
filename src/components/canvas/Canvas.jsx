@@ -12,7 +12,7 @@ let queue = [];
 let inBetween = false;
 
 const LAMBDA_ENDPOINT = "https://myi4qklfpb.execute-api.eu-west-3.amazonaws.com/canvas-state"
-const MAX_STROKES_BEFORE_SAVE = 15;
+// const MAX_STROKES_BEFORE_SAVE = 15;
 const MAX_STATE_SIZE_BYTES = 4000;
 
 const getJsonSize = (obj) => new TextEncoder().encode(JSON.stringify(obj)).length;
@@ -39,13 +39,52 @@ export default function CollaborativeCanvas({ uuid }) {
 
   // User management
   const connectedUsers = useConnectedUsers()
-  const [userConfig, setUserConfig, allUsersConfig] = useStateTogetherWithPerUserValues('userConfigs', {
+  const [userConfig, setUserConfig] = useStateTogetherWithPerUserValues('userConfigs', {
     userId: null,
     userName: null,
     isHost: false,
-    userPaceLimited: false,
     squares: []
   });
+
+  const [canvasSettings, setCanvasSettings] = useStateTogether('canvasSettings', {
+    userSpaceLimited: false
+  });
+
+  // User configuration effect
+  useEffect(() => {
+    if (connectedUsers.length > 0 && connectedUsers.find(user => user.isYou) && !isReady) {
+      const isFirstUser = connectedUsers.length === 1;
+      console.log("Setting ready, isFirstUser:", isFirstUser);
+      setIsReady(true);
+
+      if (!userConfig.userId) {
+        console.log("Showing config modal, isFirstUser:", isFirstUser);
+        setShowConfigModal(true);
+      }
+    }
+  }, [connectedUsers, userConfig.userId, isReady]);
+
+  const handleConfigSubmit = ({ username, limitUserSpace }) => {
+    const isFirstUser = connectedUsers.length === 1;
+    const currentUser = connectedUsers.find(user => user.isYou);
+
+    // Set user-specific config
+    setUserConfig({
+      userId: currentUser?.userId || uuidv4(),
+      userName: username,
+      isHost: isFirstUser,
+      squares: []
+    });
+
+    // If user is host, set the global canvas settings
+    if (isFirstUser) {
+      setCanvasSettings({
+        userSpaceLimited: limitUserSpace
+      });
+    }
+
+    setShowConfigModal(false);
+  };
 
   // Initial state loading
   useEffect(() => {
@@ -70,16 +109,6 @@ export default function CollaborativeCanvas({ uuid }) {
 
     loadState()
   }, [uuid])
-
-  // User configuration effect
-  useEffect(() => {
-    if (connectedUsers.length > 0 && !isReady) {
-      setIsReady(true)
-      if (!userConfig.userId) {
-        setShowConfigModal(true)
-      }
-    }
-  }, [connectedUsers, userConfig.userId, isReady])
 
   // Strokes synchronization effect
   useEffect(() => {
@@ -181,25 +210,15 @@ export default function CollaborativeCanvas({ uuid }) {
     })
   }
 
-  const handleConfigSubmit = ({ username, limitUserSpace }) => {
-    setUserConfig({
-      userId: uuidv4(),
-      userName: username,
-      isHost: connectedUsers[0]?.id === connectedUsers.find(user => user.isYou)?.id,
-      userSpaceLimited: limitUserSpace,
-      squares: []
-    })
-    setShowConfigModal(false)
-  }
-
   const currentSize = activeTool === TOOL_TYPES.ERASER ? eraserSize : brushSize
 
   return (
     <>
       {showConfigModal && isReady && (
         <UserConfigModal
-          isHost={connectedUsers[0]?.id === connectedUsers.find(user => user.isYou)?.id}
+          isHost={connectedUsers.length === 1}
           onSubmit={handleConfigSubmit}
+          canvasSettings={canvasSettings}
         />
       )}
       <Card className="fixed inset-0 w-screen h-screen overflow-hidden">
