@@ -1,13 +1,21 @@
-/* eslint-disable react/prop-types */
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { Card } from "@/components/ui/card"
 import { v4 as uuidv4 } from 'uuid'
 import { debounce } from 'lodash'
-import { TOOL_TYPES } from './types'
+import PropTypes from 'prop-types'
+
+// canvas types
+import { TOOL_TYPES } from '@/components/features/canvas/scripts/types'
+
+// shadcn components
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react"
-import { simplifyPoints, smoothStroke } from './utils'
-import { drawLine } from './utils'
+
+// canvas utils
+import { simplifyPoints, smoothStroke } from '@/components/features/canvas/scripts/utils'
+import { drawLine } from '@/components/features/canvas/scripts/utils'
+
+// seedrandom for consistent color and ids
 import seedrandom from 'seedrandom';
 
 export function CanvasDisplay({
@@ -19,55 +27,66 @@ export function CanvasDisplay({
   addStroke,
   userId
 }) {
-  const [isDrawing, setIsDrawing] = useState(false)
-  const [currentStroke, setCurrentStroke] = useState(null)
-  const currentStrokeRef = useRef(null)
-  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
-  const lastPointRef = useRef(null)
-  const [zoom, setZoom] = useState(1);
+  // Canvas dimensions constants
   const CANVAS_WIDTH = 1000;
   const CANVAS_HEIGHT = 1000;
+  const BASE_CANVAS_WIDTH = 3000;
+  const BASE_CANVAS_HEIGHT = 3000;
+
+  // Zoom constants
   const MIN_ZOOM = 0.5;
   const MAX_ZOOM = 2;
   const ZOOM_STEP = 0.2;
+
+  // Drawing state
+  const [isDrawing, setIsDrawing] = useState(false);
   const [isMouseDown, setIsMouseDown] = useState(false);
-  const [transform, setTransform] = useState({ x: 0, y: 0 });
-  const containerRef = useRef(null);
-  const BASE_CANVAS_WIDTH = 3000;
-  const BASE_CANVAS_HEIGHT = 3000;
+  const [currentStroke, setCurrentStroke] = useState(null);
+
+  // Refs for drawing
+  const currentStrokeRef = useRef(null);
+  const lastPointRef = useRef(null);
+
+  // Canvas size and positioning state
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [canvasDimensions, setCanvasDimensions] = useState({
     width: BASE_CANVAS_WIDTH,
     height: BASE_CANVAS_HEIGHT
   });
+  const [zoom, setZoom] = useState(1);
+  const [transform, setTransform] = useState({ x: 0, y: 0 });
+
+  // Refs for canvas
+  const containerRef = useRef(null);
   const initialZoomRef = useRef(false);
 
-  // Enhanced canvas resize handling
+  // canvas resize handling
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
     const updateCanvasSize = () => {
-      const container = canvas.parentElement
-      const rect = container.getBoundingClientRect()
-      const dpr = window.devicePixelRatio || 1
+      const container = canvas.parentElement;
+      const rect = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
 
       // Calculate the scale to fit the canvas in the container while maintaining aspect ratio
       const scale = Math.min(
         rect.width / CANVAS_WIDTH,
         rect.height / CANVAS_HEIGHT
-      )
+      );
 
       // Set the styled dimensions to maintain aspect ratio
-      const displayWidth = CANVAS_WIDTH * scale
-      const displayHeight = CANVAS_HEIGHT * scale
+      const displayWidth = CANVAS_WIDTH * scale;
+      const displayHeight = CANVAS_HEIGHT * scale;
 
       // Update canvas display size
-      canvas.style.width = `${displayWidth}px`
-      canvas.style.height = `${displayHeight}px`
+      canvas.style.width = `${displayWidth}px`;
+      canvas.style.height = `${displayHeight}px`;
 
       // Set actual canvas dimensions (accounting for DPR)
-      canvas.width = CANVAS_WIDTH * dpr
-      canvas.height = CANVAS_HEIGHT * dpr
+      canvas.width = CANVAS_WIDTH * dpr;
+      canvas.height = CANVAS_HEIGHT * dpr;
 
       setCanvasSize({
         width: CANVAS_WIDTH,
@@ -95,10 +114,6 @@ export function CanvasDisplay({
   }, [])
 
   useEffect(() => {
-    renderStrokes()
-  }, [strokes, canvasSize])
-
-  useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
@@ -118,7 +133,7 @@ export function CanvasDisplay({
         size * 2
       }" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="%23${colorHex}" stroke="white" stroke-width="2"/></svg>') ${size} ${size}, auto`;
     }
-  }, [activeTool, color, brushSize])
+  }, [activeTool, color, brushSize, canvasSize, canvasRef])
 
   const renderStrokes = useCallback(() => {
     const canvas = canvasRef.current;
@@ -127,14 +142,14 @@ export function CanvasDisplay({
     const context = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
 
-    // Clear the canvas
+    // clear the canvas
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Scale the context to account for DPR
+    // scale the context to account for DPR
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.scale(dpr, dpr);
 
-    // Render all strokes
+    // render all strokes
     strokes.forEach(stroke => {
       if (!stroke.points || stroke.points.length < 2) return;
 
@@ -156,10 +171,10 @@ export function CanvasDisplay({
   }, [strokes]);
 
   useEffect(() => {
-    renderStrokes();
-  }, [renderStrokes, canvasSize]);
+    renderStrokes()
+  }, [strokes, canvasSize, renderStrokes])
 
-  // Helper function to get correct coordinates for both mouse and touch events
+  // helper function to get correct coordinates for both mouse and touch events
   const getCoordinates = useCallback((e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
@@ -175,11 +190,11 @@ export function CanvasDisplay({
       clientY = e.clientY;
     }
 
-    // Calculate the scale factor between displayed size and actual canvas size
+    // calculate the scale factor between displayed size and actual canvas size
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
-    // Calculate coordinates in canvas space
+    // calculate coordinates in canvas space
     const x = (clientX - rect.left) * scaleX / dpr;
     const y = (clientY - rect.top) * scaleY / dpr;
 
@@ -215,7 +230,7 @@ export function CanvasDisplay({
     const newPoint = getCoordinates(e);
     const lastPoint = lastPointRef.current;
 
-    // Calculate distance from last point
+    // calculate distance from last point
     const distance = Math.sqrt(
       Math.pow(newPoint.x - lastPoint.x, 2) +
       Math.pow(newPoint.y - lastPoint.y, 2)
@@ -232,12 +247,12 @@ export function CanvasDisplay({
         return updatedStroke;
       });
 
-      // Draw the line immediately
+      // draw the line immediately
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
       const dpr = window.devicePixelRatio || 1;
 
-      // Set up the context for the current canvas size
+      // set up the context for the current canvas size
       context.setTransform(1, 0, 0, 1, 0, 0);
       context.scale(dpr, dpr);
 
@@ -259,24 +274,24 @@ export function CanvasDisplay({
 
     setIsMouseDown(false);
 
-    // Only add stroke if it has at least 2 points
+        // only add stroke if it has at least 2 points
     if (currentStroke.points.length >= 2) {
-      // Simplify the points before adding the stroke
+      // simplify the points before adding the stroke
       const simplifiedStroke = {
         ...currentStroke,
         points: simplifyPoints(currentStroke.points)
       };
 
-      // Update these state changes to happen simultaneously
+      // update these state changes to happen simultaneously
       setCurrentStroke(null);
       currentStrokeRef.current = null;
       lastPointRef.current = null;
       setIsDrawing(false);
 
-      // Move addStroke after state updates
+      // move addStroke after state updates
       addStroke(simplifiedStroke);
     } else {
-      // If stroke is too short, just reset states
+      // if stroke is too short, just reset states
       setCurrentStroke(null);
       currentStrokeRef.current = null;
       lastPointRef.current = null;
@@ -297,7 +312,7 @@ export function CanvasDisplay({
         setCurrentStroke(updatedStroke);
         currentStrokeRef.current = updatedStroke;
 
-        // Draw the new line segment immediately
+        // draw the new line segment immediately
         const canvas = canvasRef.current;
         const context = canvas.getContext("2d");
         const dpr = window.devicePixelRatio || 1;
@@ -317,48 +332,48 @@ export function CanvasDisplay({
     [isDrawing, activeTool, color, brushSize]
   );
 
-  const handleMouseLeave = useCallback(() => {
-    if (isDrawing && currentStrokeRef.current) {
-      addStroke(currentStrokeRef.current);
-    }
-    setIsDrawing(false);
-    setCurrentStroke(null);
-    currentStrokeRef.current = null;
-    lastPointRef.current = null;
-  }, [isDrawing, addStroke]);
+//   const handleMouseLeave = useCallback(() => {
+//     if (isDrawing && currentStrokeRef.current) {
+//       addStroke(currentStrokeRef.current);
+//     }
+//     setIsDrawing(false);
+//     setCurrentStroke(null);
+//     currentStrokeRef.current = null;
+//     lastPointRef.current = null;
+//   }, [isDrawing, addStroke]);
 
-  const handleMouseEnter = useCallback(
-    (e) => {
-      // Only start drawing if mouse button is still pressed (e.buttons === 1 for left button)
-      if (isMouseDown && e.buttons === 1) {
-        const point = getCoordinates(e);
-        const newStroke = {
-          id: uuidv4(),
-          type: activeTool,
-          points: [point],
-          style: {
-            color,
-            size: brushSize,
-          },
-          timestamp: Date.now(),
-        };
-        setCurrentStroke(newStroke);
-        currentStrokeRef.current = newStroke;
-        lastPointRef.current = point;
-        setIsDrawing(true);
-      } else {
-        // Reset drawing state if mouse button is not pressed
-        setIsMouseDown(false);
-        setIsDrawing(false);
-        setCurrentStroke(null);
-        currentStrokeRef.current = null;
-        lastPointRef.current = null;
-      }
-    },
-    [isMouseDown, activeTool, color, brushSize]
-  );
+//   const handleMouseEnter = useCallback(
+//     (e) => {
+//       // only start drawing if mouse button is still pressed (e.buttons === 1 for left button)
+//       if (isMouseDown && e.buttons === 1) {
+//         const point = getCoordinates(e);
+//         const newStroke = {
+//           id: uuidv4(),
+//           type: activeTool,
+//           points: [point],
+//           style: {
+//             color,
+//             size: brushSize,
+//           },
+//           timestamp: Date.now(),
+//         };
+//         setCurrentStroke(newStroke);
+//         currentStrokeRef.current = newStroke;
+//         lastPointRef.current = point;
+//         setIsDrawing(true);
+//       } else {
+//         // reset drawing state if mouse button is not pressed
+//         setIsMouseDown(false);
+//         setIsDrawing(false);
+//         setCurrentStroke(null);
+//         currentStrokeRef.current = null;
+//         lastPointRef.current = null;
+//       }
+//     },
+//     [isMouseDown, activeTool, color, brushSize]
+//   );
 
-  // Calculate initial zoom based on window size
+  // calculate initial zoom based on window size
   useEffect(() => {
     const handleGlobalMouseUp = () => {
       setIsMouseDown(false);
@@ -568,3 +583,13 @@ export function CanvasDisplay({
     </div>
   )
 }
+
+CanvasDisplay.propTypes = {
+  canvasRef: PropTypes.object.isRequired,
+  strokes: PropTypes.array.isRequired,
+  activeTool: PropTypes.string.isRequired,
+  color: PropTypes.string.isRequired,
+  brushSize: PropTypes.number.isRequired,
+  addStroke: PropTypes.func.isRequired,
+  userId: PropTypes.string.isRequired,
+};

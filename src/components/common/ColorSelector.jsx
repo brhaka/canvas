@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import colors from "@/lib/colors.json"
-import ColorPicker from "@/components/color-picker"
+import ColorPicker from "@/components/common/ColorPicker"
 import { useState, useEffect } from "react"
 import { Pipette, RefreshCw } from "lucide-react"
 

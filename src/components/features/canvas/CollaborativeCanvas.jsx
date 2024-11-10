@@ -1,14 +1,25 @@
 import { useRef, useState, useEffect } from 'react'
-import { CanvasControls } from './CanvasControls'
-import { CanvasDisplay } from './CanvasDisplay'
-import { useStateTogether, useStateTogetherWithPerUserValues, useConnectedUsers } from 'react-together'
-import { TOOL_TYPES } from './types'
 import { v4 as uuidv4 } from 'uuid';
-import { loadCanvasState } from './canvas-states';
-import { handleStrokeUpdate, handleStateSave } from './canvasStateManager';
-import { addStroke } from './addStroke';
-import ShareButton from "@/components/share-button"
-import { getJsonSize } from './utils';
+
+// canvas components
+import { CanvasControls } from '../canvas/CanvasControls'
+import { CanvasDisplay } from '../canvas/CanvasDisplay'
+import { TOOL_TYPES } from '../canvas/scripts/types'
+
+// canvas state management
+import { loadCanvasState } from '../canvas/scripts/canvas-states';
+import { handleStrokeUpdate, handleStateSave } from '../canvas/scripts/canvasStateManager';
+import { addStroke } from '../canvas/scripts/addStroke';
+import { getJsonSize } from '../canvas/scripts/utils';
+
+// custom components
+import ShareButton from "@/components/common/ShareButton"
+
+import PropTypes from 'prop-types'
+
+import { useStateTogether, useConnectedUsers } from 'react-together'
+
+// Styles
 import './canvas-styles.css'
 
 const MAX_STATE_SIZE_BYTES = 4000;
@@ -24,72 +35,25 @@ export default function CollaborativeCanvas({ uuid }) {
   const [localStrokes, setLocalStrokes] = useState([])
   const [undoStack, setUndoStack] = useStateTogether("undoStack", [])
 
-  const [showConfigModal, setShowConfigModal] = useState(false)
-  const [isReady, setIsReady] = useState(false)
-
   const myUserId = uuidv4();
 
   const hasLoaded = useRef(false);
   const inBetween = useRef(false);
   const queue = useRef([]);
 
-  // User management
+  // keeps track of connected users
   const connectedUsers = useConnectedUsers()
-  const [userConfig, setUserConfig] = useStateTogetherWithPerUserValues('userConfigs', {
-    userId: null,
-    userName: null,
-    isHost: false,
-    squares: []
-  });
-
-  const [canvasSettings, setCanvasSettings] = useStateTogether('canvasSettings', {
-    userSpaceLimited: false
-  });
 
   const [userCountChanged, setUserCountChanged] = useState(false);
 
-  // Add effect to trigger animation when user count changes
+  // triggers animation when user count changes
   useEffect(() => {
     setUserCountChanged(true);
     const timer = setTimeout(() => setUserCountChanged(false), 300);
     return () => clearTimeout(timer);
   }, [connectedUsers.length]);
 
-  // User configuration effect
-  useEffect(() => {
-    if (connectedUsers.length > 0 && connectedUsers.find(user => user.isYou) && !isReady) {
-      const isFirstUser = connectedUsers.length === 1;
-      setIsReady(true);
-
-      if (!userConfig.userId) {
-        setShowConfigModal(true);
-      }
-    }
-  }, [connectedUsers, userConfig.userId, isReady]);
-
-  const handleConfigSubmit = ({ username, limitUserSpace }) => {
-    const isFirstUser = connectedUsers.length === 1;
-    const currentUser = connectedUsers.find(user => user.isYou);
-
-    // Set user-specific config
-    setUserConfig({
-      userId: currentUser?.userId || uuidv4(),
-      userName: username,
-      isHost: isFirstUser,
-      squares: []
-    });
-
-    // If user is host, set the global canvas settings
-    if (isFirstUser) {
-      setCanvasSettings({
-        userSpaceLimited: limitUserSpace
-      });
-    }
-
-    setShowConfigModal(false);
-  };
-
-  // Simplified initial state loading
+  // simplified initial state loading
   useEffect(() => {
     if (hasLoaded.current) return;
     hasLoaded.current = true;
@@ -102,6 +66,7 @@ export default function CollaborativeCanvas({ uuid }) {
     initializeCanvas();
   }, [uuid]);
 
+  // tricky, this one.
   useEffect(() => {
     handleStrokeUpdate({
       strokes,
@@ -131,7 +96,6 @@ export default function CollaborativeCanvas({ uuid }) {
 
   // Strokes synchronization effect
   useEffect(() => {
-    console.log("strokes", strokes, strokes.length);
     const myIds = localStrokes.map(stroke => stroke.id);
     setLocalStrokes([...localStrokes, ...strokes.filter(stroke => !myIds.includes(stroke.id))]);
 
@@ -176,7 +140,7 @@ export default function CollaborativeCanvas({ uuid }) {
     })
   }
 
-  const currentSize = activeTool === TOOL_TYPES.ERASER ? eraserSize : brushSize
+  const currentSize = activeTool === TOOL_TYPES.ERASER ? eraserSize : brushSize;
 
   return (
     <div className="fixed inset-0 w-screen h-screen overflow-hidden">
@@ -185,7 +149,7 @@ export default function CollaborativeCanvas({ uuid }) {
           Canvas
         </p>
 
-        {/* Mobile view - shown below Canvas title */}
+        {/* mobile view - canvas title */}
         <div className="md:hidden mt-2">
           <div className={`inline-flex items-center gap-2 bg-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-full ${
             userCountChanged ? 'animate-pop' : ''
@@ -197,7 +161,7 @@ export default function CollaborativeCanvas({ uuid }) {
           </div>
         </div>
 
-        {/* Desktop view - shown to the right */}
+        {/* desktop view - canvas controls */}
         <div className="hidden md:block absolute right-8 top-1/2 -translate-y-1/2">
           <div className="flex items-center gap-4">
             <div className={`flex items-center gap-2 bg-secondary/80 backdrop-blur-sm pl-3 pr-10 mr-6 mt-3 py-1.5 rounded-full ${
@@ -239,14 +203,10 @@ export default function CollaborativeCanvas({ uuid }) {
           canUndo={(undoStack || []).length > 0}
         />
       </div>
-
-      {/* User Configuration Modal */}
-      {/* {showConfigModal && (
-        <UserConfigModal
-          onSubmit={handleConfigSubmit}
-          isHost={connectedUsers.length === 1}
-        />
-      )} */}
     </div>
   )
+}
+
+CollaborativeCanvas.propTypes = {
+  uuid: PropTypes.string.isRequired
 }

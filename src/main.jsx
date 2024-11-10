@@ -9,10 +9,10 @@ import './index.css'
 
 // Routes
 import App from './App'
-import Home from './routes/home'
-import ErrorPage from "./error-page";
-import Canvas from './routes/canvas'
-import SessionGenerator from './routes/session-generator'
+import Home from './routes/Home'
+import ErrorPage from "./ErrorPage";
+import Canvas from './routes/Canvas'
+import SessionGenerator from './routes/SessionGenerator'
 
 const router = createBrowserRouter([
   {

@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from "@/lib/utils"
+import PropTypes from 'prop-types'
 
 export default function ColorPicker({
   color = "#FFFFFF",
   onChange = () => {},
   className
 }) {
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
   const [state, setState] = useState({
     isDragging: false,
     baseColor: color,
     position: { x: 0, y: 0 }
   })
+
   const refs = {
     canvas: useRef(null),
     slider: useRef(null),
@@ -37,32 +38,33 @@ export default function ColorPicker({
       }
     }
     return 0;
-  }, [rgbToHex]);
+  }, [rgbToHex, refs.slider]);
 
   const drawGradient = useCallback(() => {
-    const canvas = refs.canvas.current
-    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    const canvas = refs.canvas.current;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-    // Create horizontal white-to-color-to-black gradient
+    // horizontal white-to-color-to-black gradient
     const gradientH = ctx.createLinearGradient(0, 0, canvas.width, 0)
+
     gradientH.addColorStop(0, '#FFFFFF')
     gradientH.addColorStop(0.5, state.baseColor)
     gradientH.addColorStop(1, '#000000')
 
-    // Draw base gradient
+    // base gradient
     ctx.fillStyle = gradientH
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-    // Create vertical transparent-to-black gradient
+    // vertical transparent-to-black gradient
     const gradientV = ctx.createLinearGradient(0, 0, 0, canvas.height)
     gradientV.addColorStop(0, 'rgba(0, 0, 0, 0)')
     gradientV.addColorStop(1, 'rgba(0, 0, 0, 1)')
 
-    // Draw transparency gradient
+    // transparency gradient
     ctx.fillStyle = gradientV
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-    // Draw position indicator
+    // position indicator
     ctx.beginPath()
     ctx.arc(state.position.x, state.position.y, 10, 0, 2 * Math.PI)
     ctx.strokeStyle = 'white'
@@ -73,14 +75,15 @@ export default function ColorPicker({
     ctx.strokeStyle = 'black'
     ctx.lineWidth = 1
     ctx.stroke()
-  }, [state.baseColor, state.position])
+  }, [state.baseColor, state.position, refs.canvas])
 
   const drawSlider = useCallback(() => {
     const canvas = refs.slider.current;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-    // Draw rainbow gradient
+    // rainbow gradient
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+
     gradient.addColorStop(0, '#FF0000');
     gradient.addColorStop(0.17, '#FF00FF');
     gradient.addColorStop(0.33, '#0000FF');
@@ -92,7 +95,7 @@ export default function ColorPicker({
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw marker for selected color
+    // marker for selected color
     const markerX = findSliderPosition(state.baseColor);
     ctx.beginPath();
     ctx.moveTo(markerX, 0);
@@ -107,16 +110,18 @@ export default function ColorPicker({
     ctx.strokeStyle = 'black';
     ctx.lineWidth = 1;
     ctx.stroke();
-  }, [findSliderPosition, state.baseColor]);
+  }, [findSliderPosition, state.baseColor, refs.slider])
 
   const handleColorSelect = useCallback((e, isSlider = false) => {
-    const canvas = isSlider ? refs.slider.current : refs.canvas.current
-    const rect = canvas.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = isSlider ? 0 : e.clientY - rect.top
-    const ctx = canvas.getContext('2d', { willReadFrequently: true })
-    const imageData = ctx.getImageData(x, y, 1, 1).data
-    const hex = rgbToHex(imageData)
+    const canvas = isSlider ? refs.slider.current : refs.canvas.current;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = isSlider ? 0 : e.clientY - rect.top;
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const imageData = ctx.getImageData(x, y, 1, 1).data;
+    const hex = rgbToHex(imageData);
 
     if (isSlider) {
       setState(prev => ({ ...prev, baseColor: hex }))
@@ -124,7 +129,7 @@ export default function ColorPicker({
       setState(prev => ({ ...prev, position: { x, y } }))
       onChange(hex)
     }
-  }, [onChange, rgbToHex])
+  }, [onChange, rgbToHex, refs.slider, refs.canvas])
 
   const handleMouseEvents = {
     onMouseDown: (e, isSlider = false) => {
@@ -145,9 +150,8 @@ export default function ColorPicker({
     const container = refs.container.current
     const resizeObserver = new ResizeObserver(entries => {
       const { width, height } = entries[0].contentRect
-      setDimensions({ width, height })
 
-      // Update canvas sizes
+      // update canvas sizes
       const canvas = refs.canvas.current
       const slider = refs.slider.current
 
@@ -156,18 +160,18 @@ export default function ColorPicker({
       slider.width = width
       slider.height = 20
 
-      // Redraw after resize
+      // redraw after resize
       drawGradient()
       drawSlider()
     })
 
     resizeObserver.observe(container)
     return () => resizeObserver.disconnect()
-  }, [drawGradient, drawSlider])
+  }, [drawGradient, drawSlider, refs.container, refs.canvas, refs.slider])
 
   return (
     <div className={cn("flex flex-col gap-2 mt-2 bg-white rounded-md w-full", className)}>
-      {/* Main color picker */}
+      {/* main color picker */}
       <div
         ref={refs.container}
         className="relative w-full aspect-square"
@@ -182,7 +186,7 @@ export default function ColorPicker({
         />
       </div>
 
-      {/* Rainbow slider */}
+      {/* rainbow slider */}
       <div
         className="relative w-full h-6"
         onMouseUp={handleMouseEvents.onMouseUp}
@@ -196,7 +200,7 @@ export default function ColorPicker({
         />
       </div>
 
-      {/* Hex color input */}
+      {/* hex color input */}
       <div className="flex items-center gap-2 bg-gray-100 rounded-md p-2">
         <input
           type="text"
@@ -211,4 +215,10 @@ export default function ColorPicker({
       </div>
     </div>
   )
+}
+
+ColorPicker.propTypes = {
+  color: PropTypes.string,
+  onChange: PropTypes.func,
+  className: PropTypes.string
 }

@@ -1,5 +1,5 @@
-import { Link, useParams } from "react-router-dom";
-import CollaborativeCanvas from "@/components/canvas/Canvas";
+import { useParams } from "react-router-dom";
+import CollaborativeCanvas from "@/components/features/canvas/CollaborativeCanvas";
 import { ReactTogether } from 'react-together'
 
 export default function Canvas() {

@@ -1,10 +1,9 @@
-/* eslint-disable react/prop-types */
-// CanvasControls.jsx
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
-import { TOOL_TYPES } from './types'
-import ColorSelector from "@/components/color-selector"
+import { TOOL_TYPES } from '@/components/features/canvas/scripts/types'
+import ColorSelector from "@/components/common/ColorSelector"
 import { Brush, Eraser } from "lucide-react"
+import PropTypes from 'prop-types'
 import { Card } from "@/components/ui/card"
 
 export function CanvasControls({
@@ -15,9 +14,7 @@ export function CanvasControls({
   eraserSize,
   setEraserSize,
   activeTool,
-  setActiveTool,
-  onUndo,
-  canUndo
+  setActiveTool
 }) {
   return (
     <Card className="flex flex-col gap-4 p-2 w-[60px] items-center !rounded-l-none">
@@ -80,4 +77,15 @@ export function CanvasControls({
       </div>
     </Card>
   )
+}
+
+CanvasControls.propTypes = {
+  color: PropTypes.string,
+  setColor: PropTypes.func,
+  brushSize: PropTypes.number,
+  setBrushSize: PropTypes.func,
+  eraserSize: PropTypes.number,
+  setEraserSize: PropTypes.func,
+  activeTool: PropTypes.string,
+  setActiveTool: PropTypes.func
 }
