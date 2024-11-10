@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { debounce } from 'lodash'
 import { TOOL_TYPES } from './types'
 import { Button } from "@/components/ui/button"
-import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react" // Import icons
+import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react"
 import { simplifyPoints, smoothStroke } from './utils'
 import { drawLine } from './utils'
 
@@ -23,6 +23,8 @@ export function CanvasDisplay({
   const lastPointRef = useRef(null)
   const initialSizeRef = useRef(null)
   const [zoom, setZoom] = useState(1);
+  const CANVAS_WIDTH = 6000;
+  const CANVAS_HEIGHT = 6000;
   const MIN_ZOOM = 0.5;
   const MAX_ZOOM = 2;
   const ZOOM_STEP = 0.1;
@@ -38,27 +40,31 @@ export function CanvasDisplay({
       const rect = container.getBoundingClientRect()
       const dpr = window.devicePixelRatio || 1
 
-      // Set initial size reference if not set
-      if (!initialSizeRef.current) {
-        initialSizeRef.current = {
-          width: rect.width,
-          height: rect.height,
-          dpr: dpr
-        }
-      }
+      // Calculate the scale to fit the canvas in the container while maintaining aspect ratio
+      const scale = Math.min(
+        rect.width / CANVAS_WIDTH,
+        rect.height / CANVAS_HEIGHT
+      )
 
-      // Update canvas size
-      canvas.style.width = `${rect.width}px`
-      canvas.style.height = `${rect.height}px`
-      canvas.width = Math.floor(rect.width * dpr)
-      canvas.height = Math.floor(rect.height * dpr)
+      // Set the styled dimensions to maintain aspect ratio
+      const displayWidth = CANVAS_WIDTH * scale
+      const displayHeight = CANVAS_HEIGHT * scale
+
+      // Update canvas display size
+      canvas.style.width = `${displayWidth}px`
+      canvas.style.height = `${displayHeight}px`
+
+      // Set actual canvas dimensions (accounting for DPR)
+      canvas.width = CANVAS_WIDTH * dpr
+      canvas.height = CANVAS_HEIGHT * dpr
 
       setCanvasSize({
-        width: rect.width,
-        height: rect.height,
-        dpr: dpr,
-        scaleX: rect.width / initialSizeRef.current.width,
-        scaleY: rect.height / initialSizeRef.current.height
+        width: CANVAS_WIDTH,
+        height: CANVAS_HEIGHT,
+        displayWidth,
+        displayHeight,
+        dpr,
+        scale
       })
     }
 
@@ -95,7 +101,7 @@ export function CanvasDisplay({
 
   const renderStrokes = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !initialSizeRef.current) return;
+    if (!canvas) return;
 
     const context = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
@@ -103,18 +109,16 @@ export function CanvasDisplay({
     // Clear the canvas
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Set up the context for the current canvas size
+    // Scale the context to account for DPR
     context.setTransform(1, 0, 0, 1, 0, 0);
-    context.scale(dpr * canvasSize.scaleX, dpr * canvasSize.scaleY);
+    context.scale(dpr, dpr);
 
     // Render all strokes
     strokes.forEach(stroke => {
       if (!stroke.points || stroke.points.length < 2) return;
 
-      // Generate smoothed points for rendering
       const smoothedPoints = smoothStroke(stroke.points);
 
-      // Draw using smoothed points
       for (let i = 1; i < smoothedPoints.length; i++) {
         drawLine(
           context,
@@ -128,7 +132,7 @@ export function CanvasDisplay({
         );
       }
     });
-  }, [strokes, canvasSize]);
+  }, [strokes]);
 
   useEffect(() => {
     renderStrokes();
@@ -138,22 +142,25 @@ export function CanvasDisplay({
   const getCoordinates = (e) => {
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
 
     let clientX, clientY;
 
     if (e.touches) {
-      // Touch event
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
     } else {
-      // Mouse event
       clientX = e.clientX;
       clientY = e.clientY;
     }
 
-    // Calculate coordinates relative to initial canvas size
-    const x = ((clientX - rect.left) / canvasSize.scaleX);
-    const y = ((clientY - rect.top) / canvasSize.scaleY);
+    // Calculate the scale factor between displayed size and actual canvas size
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    // Calculate coordinates in canvas space
+    const x = (clientX - rect.left) * scaleX / dpr;
+    const y = (clientY - rect.top) * scaleY / dpr;
 
     return { x, y };
   };
@@ -211,7 +218,7 @@ export function CanvasDisplay({
 
       // Set up the context for the current canvas size
       context.setTransform(1, 0, 0, 1, 0, 0);
-      context.scale(dpr * canvasSize.scaleX, dpr * canvasSize.scaleY);
+      context.scale(dpr, dpr);
 
       drawLine(
         context,
@@ -261,117 +268,119 @@ export function CanvasDisplay({
   }, []);
 
   return (
-    <div className="relative w-full h-full">
-      <canvas
-        ref={canvasRef}
-        className="w-full h-full touch-none select-none rounded-lg border border-gray-200"
-        style={{
-          touchAction: 'none',
-          display: 'block',
-          maxWidth: '100%',
-          maxHeight: '100%'
-        }}
-        onMouseDown={(e) => {
-          setIsMouseDown(true);
-          startDrawing(e);
-        }}
-        onMouseMove={draw}
-        onMouseUp={() => {
-          setIsMouseDown(false);
-          stopDrawing();
-        }}
-        onMouseOut={(e) => {
-          if (isDrawing) {
-            // Finalize the current stroke before leaving the canvas
-            if (currentStroke?.points.length >= 2) {
-              const simplifiedStroke = {
-                ...currentStroke,
-                points: simplifyPoints(currentStroke.points)
+    <div className="relative w-full h-full overflow-auto">
+      <div className="absolute min-w-full min-h-full">
+        <canvas
+          ref={canvasRef}
+          className="touch-none select-none rounded-lg border border-gray-200"
+          style={{
+            touchAction: 'none',
+            display: 'block',
+            width: `${CANVAS_WIDTH}px`,
+            height: `${CANVAS_HEIGHT}px`
+          }}
+          onMouseDown={(e) => {
+            setIsMouseDown(true);
+            startDrawing(e);
+          }}
+          onMouseMove={draw}
+          onMouseUp={() => {
+            setIsMouseDown(false);
+            stopDrawing();
+          }}
+          onMouseOut={(e) => {
+            if (isDrawing) {
+              // Finalize the current stroke before leaving the canvas
+              if (currentStroke?.points.length >= 2) {
+                const simplifiedStroke = {
+                  ...currentStroke,
+                  points: simplifyPoints(currentStroke.points)
+                };
+                addStroke(simplifiedStroke);
+              }
+              setIsDrawing(false);
+              setCurrentStroke(null);
+              currentStrokeRef.current = null;
+              lastPointRef.current = null;
+            }
+          }}
+          onMouseEnter={(e) => {
+            if (isMouseDown) {
+              // Start a fresh stroke when re-entering
+              const point = getCoordinates(e);
+              const newStroke = {
+                id: uuidv4(),
+                type: activeTool,
+                points: [point],
+                style: {
+                  color,
+                  size: brushSize
+                },
+                timestamp: Date.now()
               };
-              addStroke(simplifiedStroke);
-            }
-            setIsDrawing(false);
-            setCurrentStroke(null);
-            currentStrokeRef.current = null;
-            lastPointRef.current = null;
-          }
-        }}
-        onMouseEnter={(e) => {
-          if (isMouseDown) {
-            // Start a fresh stroke when re-entering
-            const point = getCoordinates(e);
-            const newStroke = {
-              id: uuidv4(),
-              type: activeTool,
-              points: [point],
-              style: {
-                color,
-                size: brushSize
-              },
-              timestamp: Date.now()
-            };
-            setCurrentStroke(newStroke);
-            currentStrokeRef.current = newStroke;
-            lastPointRef.current = point;
-            setIsDrawing(true);
-          }
-        }}
-        onTouchStart={startDrawing}
-        onTouchMove={draw}
-        onTouchEnd={stopDrawing}
-        onTouchCancel={stopDrawing}
-      />
-
-      {/* Updated zoom controls with better mobile positioning and touch handling */}
-      <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (zoom < MAX_ZOOM) {
-              setZoom(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
+              setCurrentStroke(newStroke);
+              currentStrokeRef.current = newStroke;
+              lastPointRef.current = point;
+              setIsDrawing(true);
             }
           }}
-          disabled={zoom >= MAX_ZOOM}
-          className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
-          title="Zoom In"
-        >
-          <ZoomIn className="h-4 w-4" />
-        </Button>
+          onTouchStart={startDrawing}
+          onTouchMove={draw}
+          onTouchEnd={stopDrawing}
+          onTouchCancel={stopDrawing}
+        />
 
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (zoom > MIN_ZOOM) {
-              setZoom(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
-            }
-          }}
-          disabled={zoom <= MIN_ZOOM}
-          className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
-          title="Zoom Out"
-        >
-          <ZoomOut className="h-4 w-4" />
-        </Button>
+        {/* Updated zoom controls with better mobile positioning and touch handling */}
+        <div className="fixed right-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-10">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (zoom < MAX_ZOOM) {
+                setZoom(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
+              }
+            }}
+            disabled={zoom >= MAX_ZOOM}
+            className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
+            title="Zoom In"
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
 
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setZoom(1);
-          }}
-          disabled={zoom === 1}
-          className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
-          title="Reset Zoom"
-        >
-          <RotateCcw className="h-4 w-4" />
-        </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (zoom > MIN_ZOOM) {
+                setZoom(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
+              }
+            }}
+            disabled={zoom <= MIN_ZOOM}
+            className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
+            title="Zoom Out"
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setZoom(1);
+            }}
+            disabled={zoom === 1}
+            className="w-8 h-8 bg-background/80 backdrop-blur-sm touch-none"
+            title="Reset Zoom"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   )
