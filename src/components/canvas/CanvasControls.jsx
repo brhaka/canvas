@@ -51,28 +51,33 @@ export function CanvasControls({
         <Eraser className="h-5 w-5 text-foreground" />
       </Button>
 
-      {/* Size Control
-      <div className="w-[150px] rotate-[-90deg] origin-[75px_75px]">
-        {activeTool === TOOL_TYPES.BRUSH ? (
-          <Slider
-            value={[brushSize]}
-            onValueChange={(value) => setBrushSize(value[0])}
-            min={1}
-            max={20}
-            step={1}
-            className="w-full"
-          />
-        ) : (
-          <Slider
-            value={[eraserSize]}
-            onValueChange={(value) => setEraserSize(value[0])}
-            min={1}
-            max={40}
-            step={1}
-            className="w-full"
-          />
-        )}
-      </div> */}
+      {/* Size Control */}
+      <div className="w-full relative group h-10 mb-2">
+        <div className="absolute left-0 hover:shadow-md bg-background rounded-md w-[46px] hover:w-[140px] transition-all duration-200 ease-in-out pt-1 pb-2 px-1">
+          <div className="text-xs text-center mb-2">
+            {activeTool === TOOL_TYPES.BRUSH ? `${brushSize}px` : `${eraserSize}px`}
+          </div>
+          {activeTool === TOOL_TYPES.BRUSH ? (
+            <Slider
+              value={[brushSize]}
+              onValueChange={(value) => setBrushSize(value[0])}
+              min={1}
+              max={20}
+              step={1}
+              className="w-full"
+            />
+          ) : (
+            <Slider
+              value={[eraserSize]}
+              onValueChange={(value) => setEraserSize(value[0])}
+              min={1}
+              max={40}
+              step={1}
+              className="w-full"
+            />
+          )}
+        </div>
+      </div>
     </Card>
   )
 }
