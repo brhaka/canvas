@@ -180,36 +180,54 @@ export function CanvasDisplay({
   }, [activeTool, color, brushSize])
 
   const drawLine = (context, start, end, style) => {
-    context.beginPath()
-    context.moveTo(start.x, start.y)
+    context.beginPath();
 
-    // Use quadratic curve to smooth the line
     if (style.type === TOOL_TYPES.BRUSH) {
-      const controlPoint = {
-        x: (start.x + end.x) / 2,
-        y: (start.y + end.y) / 2
+      // Save context state
+      context.save();
+
+      // Parse the color to RGB components
+      let r, g, b;
+      if (style.color.startsWith('rgb')) {
+        [r, g, b] = style.color.match(/\d+/g).map(Number);
+      } else {
+        r = parseInt(style.color.slice(1,3), 16);
+        g = parseInt(style.color.slice(3,5), 16);
+        b = parseInt(style.color.slice(5,7), 16);
       }
-      context.quadraticCurveTo(controlPoint.x, controlPoint.y, end.x, end.y)
+
+      // Draw main stroke
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+      context.lineWidth = style.size;
+      context.strokeStyle = `rgb(${r}, ${g}, ${b})`;
+      context.globalCompositeOperation = 'source-over';
+      context.moveTo(start.x, start.y);
+      context.lineTo(end.x, end.y);
+      context.stroke();
+
+      // Draw blending border
+      context.globalCompositeOperation = 'destination-over';
+      context.lineWidth = style.size + 2; // Slightly larger for border
+      context.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.1)`;
+      context.moveTo(start.x, start.y);
+      context.lineTo(end.x, end.y);
+      context.stroke();
+
+      // Restore context state
+      context.restore();
     } else {
-      // For eraser, use straight lines for more precise control
-      context.lineTo(end.x, end.y)
+      // Eraser remains unchanged
+      context.globalCompositeOperation = 'destination-out';
+      context.strokeStyle = 'rgba(0,0,0,1)';
+      context.lineWidth = style.size;
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+      context.moveTo(start.x, start.y);
+      context.lineTo(end.x, end.y);
+      context.stroke();
+      context.globalCompositeOperation = 'source-over';
     }
-
-    // Configure line style
-    context.lineCap = 'round'
-    context.lineJoin = 'round'
-    context.lineWidth = style.size
-
-    if (style.type === TOOL_TYPES.ERASER) {
-      context.globalCompositeOperation = 'destination-out'
-      context.strokeStyle = 'rgba(0,0,0,1)'
-    } else {
-      context.globalCompositeOperation = 'source-over'
-      context.strokeStyle = style.color
-    }
-
-    context.stroke()
-    context.globalCompositeOperation = 'source-over' // Reset for next operation
   }
 
   const renderStrokes = useCallback(() => {
