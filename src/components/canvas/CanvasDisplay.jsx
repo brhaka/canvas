@@ -254,7 +254,8 @@ export function CanvasDisplay({
 
   const handleMouseEnter = useCallback(
     (e) => {
-      if (isMouseDown) {
+      // Only start drawing if mouse button is still pressed (e.buttons === 1 for left button)
+      if (isMouseDown && e.buttons === 1) {
         const point = getCoordinates(e);
         const newStroke = {
           id: uuidv4(),
@@ -270,6 +271,13 @@ export function CanvasDisplay({
         currentStrokeRef.current = newStroke;
         lastPointRef.current = point;
         setIsDrawing(true);
+      } else {
+        // Reset drawing state if mouse button is not pressed
+        setIsMouseDown(false);
+        setIsDrawing(false);
+        setCurrentStroke(null);
+        currentStrokeRef.current = null;
+        lastPointRef.current = null;
       }
     },
     [isMouseDown, activeTool, color, brushSize]
@@ -390,6 +398,7 @@ export function CanvasDisplay({
           left: "50%",
           transform: "translate(-50%, -50%)",
           overflow: "auto",
+          zIndex: "10"
         }}
         onWheel={handleWheel}
       >

@@ -168,7 +168,7 @@ export default function Home() {
 
           {/* Changed to flex-col on mobile, flex-row on desktop */}
           <div className="flex flex-col md:flex-row gap-4">
-            <Link to="/login" className="w-full px-6 py-4 text-lg font-semibold rounded-lg bg-black text-white hover:bg-black/90 transition-colors text-center">
+            <Link to="/" className="w-full px-6 py-4 text-lg font-semibold rounded-lg bg-black text-white hover:bg-black/90 transition-colors text-center">
               Login
             </Link>
             <Link to="/canvas" className="w-full px-6 py-4 text-lg font-semibold rounded-lg border border-black text-black hover:bg-black/5 transition-colors text-center">
