@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Sour Gummy", Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -15,6 +15,8 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  font-optical-sizing: auto;
 }
 
 a {
@@ -247,15 +249,15 @@ button:focus-visible {
   .container {
     max-width: 1400px;
   }
-  
+
   h1 {
     @apply text-6xl;
   }
-  
+
   h2 {
     @apply text-5xl;
   }
-  
+
   h3 {
     @apply text-4xl;
   }
