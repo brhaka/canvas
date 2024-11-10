@@ -1,10 +1,10 @@
 import { Outlet } from "react-router-dom"
+import "./App.css"
 
 export default function App() {
   return (
-    <div>
-      {/* Shared layout elements go here (footer, navigation, etc) */}
+    <main className="w-full h-full">
       <Outlet />
-    </div>
+    </main>
   )
 }
