@@ -1,4 +1,6 @@
-## Technical challenges we faced regarding React Together
+![Canvas](https://canvas-app.s3.eu-west-3.amazonaws.com/assets/canvas-home.gif)
+
+## Technical challenges we faced regarding ReactTogether
 
 * We faced a problem where some messages (brush strokes) would be lost. That was happening when a second message was sent before the state was updated to contain the first message. That meant that the second message would include `state + second message` instead of `state + first message + second message`.
 
