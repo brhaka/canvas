@@ -4,7 +4,7 @@ export const addStroke = ({
   stroke,
   strokes,
   setStrokes,
-  setMyStrokes,
+  setLocalStrokes,
   setUndoStack,
   queue,
   inBetween,
@@ -22,7 +22,7 @@ export const addStroke = ({
     const splitStrokes = splitLargeStroke(newStroke, MAX_STATE_SIZE_BYTES);
 
     // Add all split strokes to local state
-    setMyStrokes(prev => [...prev, ...splitStrokes]);
+    setLocalStrokes(prev => [...prev, ...splitStrokes]);
 
     // Handle each split stroke
     splitStrokes.forEach(splitStroke => {
@@ -39,7 +39,7 @@ export const addStroke = ({
   }
 
   // Normal case - handle as before
-  setMyStrokes(prev => [...prev, newStroke]);
+  setLocalStrokes(prev => [...prev, newStroke]);
 
   const potentialNewStrokes = [...strokes, newStroke];
   const potentialSize = getJsonSize(potentialNewStrokes);
