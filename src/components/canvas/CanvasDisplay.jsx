@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react" // Import icons
 
 // Add this new function before the CanvasDisplay component
+// Ramer-Douglas-Peucker
 const simplifyPoints = (points, tolerance = 2) => {
   if (points.length <= 2) return points;
 
