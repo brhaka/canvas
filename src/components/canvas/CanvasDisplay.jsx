@@ -8,6 +8,7 @@ import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react"
 import { simplifyPoints, smoothStroke } from './utils'
 import { drawLine } from './utils'
 import { Card } from "@/components/ui/card"
+import seedrandom from 'seedrandom';
 
 export function CanvasDisplay({
   canvasRef,
@@ -15,7 +16,8 @@ export function CanvasDisplay({
   activeTool,
   color,
   brushSize,
-  addStroke
+  addStroke,
+  userId
 }) {
   const [isDrawing, setIsDrawing] = useState(false)
   const [currentStroke, setCurrentStroke] = useState(null)
@@ -32,6 +34,13 @@ export function CanvasDisplay({
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [transform, setTransform] = useState({ x: 0, y: 0 });
   const containerRef = useRef(null);
+  const BASE_CANVAS_WIDTH = 3000;
+  const BASE_CANVAS_HEIGHT = 3000;
+  const [canvasDimensions, setCanvasDimensions] = useState({
+    width: BASE_CANVAS_WIDTH,
+    height: BASE_CANVAS_HEIGHT
+  });
+  const initialZoomRef = useRef(false);
 
   // Enhanced canvas resize handling
   useEffect(() => {
@@ -281,30 +290,50 @@ export function CanvasDisplay({
     return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
   }, []);
 
-  // Calculate initial zoom based on window size
+  // Calculate initial zoom and position based on user ID
   useEffect(() => {
-    if (containerRef.current) {
+    if (containerRef.current && !initialZoomRef.current && userId) {
       const container = containerRef.current;
-      
-      // Get the container dimensions
       const containerWidth = container.offsetWidth;
       const containerHeight = container.offsetHeight;
+      const isMobile = window.innerWidth <= 768;
 
-      // Calculate zoom needed to fit the canvas width
-      const horizontalZoom = containerWidth / CANVAS_WIDTH;
-      
-      // Set initial zoom to match the container width
-      setZoom(horizontalZoom);
+      if (isMobile) {
+        // Create a seeded random number generator
+        const rng = seedrandom(userId);
+
+        // Calculate zoom (between 1.5 and 2.5 for mobile)
+        const mobileZoom = 1.5 + (rng() * 1);
+
+        // Calculate random position within canvas bounds
+        // Ensure the visible area stays within canvas boundaries
+        const maxX = canvasDimensions.width - (containerWidth / mobileZoom);
+        const maxY = canvasDimensions.height - (containerHeight / mobileZoom);
+
+        const randomX = Math.floor(rng() * maxX);
+        const randomY = Math.floor(rng() * maxY);
+
+        setZoom(mobileZoom);
+        setTransform({ x: -randomX, y: -randomY });
+      } else {
+        // Desktop behavior remains the same
+        const horizontalZoom = containerWidth / canvasDimensions.width;
+        setZoom(horizontalZoom);
+        setTransform({ x: 0, y: 0 });
+      }
+
+      // Mark initial zoom as complete
+      initialZoomRef.current = true;
     }
-  }, []);
+  }, [userId, canvasDimensions]);
 
-  // Update containerStyle to center the canvas
+  // Update containerStyle to use canvasDimensions
   const containerStyle = {
-    transform: `scale(${zoom})`,
+    transform: `translate(${transform.x}px, ${transform.y}px) scale(${zoom})`,
     transformOrigin: '0 0',
     transition: 'transform 0.2s ease-out',
-    width: `${CANVAS_WIDTH}px`,
-    height: `${CANVAS_HEIGHT}px`,
+    width: `${canvasDimensions.width}px`,
+    height: `${canvasDimensions.height}px`,
   };
 
   // Add zoom handlers
@@ -324,10 +353,10 @@ export function CanvasDisplay({
       // Calculate minimum zoom based on container width
       const containerWidth = containerRef.current?.offsetWidth || 0;
       const minZoom = containerWidth / CANVAS_WIDTH;
-      
+
       // Use the larger of our calculated minZoom and MIN_ZOOM
       const effectiveMinZoom = Math.max(minZoom, MIN_ZOOM);
-      
+
       // Apply zoom reduction but don't go below effectiveMinZoom
       const newZoom = Math.max(prevZoom - ZOOM_STEP, effectiveMinZoom);
       return newZoom;
@@ -341,14 +370,44 @@ export function CanvasDisplay({
     setTransform({ x: 0, y: 0 });
   }, []);
 
+  useEffect(() => {
+    if (containerRef.current) {
+      const container = containerRef.current;
+      const isMobile = window.innerWidth <= 768;
+
+      if (isMobile) {
+        // Get the screen dimensions
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+
+        // Calculate the scaling factor needed to ensure canvas is at least as large as the screen
+        const widthScale = Math.max(1, screenWidth / BASE_CANVAS_WIDTH);
+        const heightScale = Math.max(1, screenHeight / BASE_CANVAS_HEIGHT);
+        const scale = Math.max(widthScale, heightScale);
+
+        // Update canvas dimensions
+        setCanvasDimensions({
+          width: BASE_CANVAS_WIDTH * scale,
+          height: BASE_CANVAS_HEIGHT * scale
+        });
+      } else {
+        // Reset to base dimensions for desktop
+        setCanvasDimensions({
+          width: BASE_CANVAS_WIDTH,
+          height: BASE_CANVAS_HEIGHT
+        });
+      }
+    }
+  }, []);
+
   return (
-    <div 
+    <div
       ref={containerRef}
       className="relative w-full h-full overflow-auto"
       style={{ height: 'calc(100vh - 64px)' }}
     >
-      <div 
-        className="absolute"
+      <div
+        className="absolute h-full w-full"
         style={containerStyle}
       >
         <canvas
@@ -357,8 +416,8 @@ export function CanvasDisplay({
           style={{
             touchAction: 'none',
             display: 'block',
-            width: `${CANVAS_WIDTH}px`,
-            height: `${CANVAS_HEIGHT}px`
+            width: `${canvasDimensions.width}px`,
+            height: `${canvasDimensions.height}px`
           }}
           onMouseDown={(e) => {
             setIsMouseDown(true);

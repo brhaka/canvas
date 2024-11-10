@@ -1,11 +1,11 @@
 import { useRef, useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CanvasControls } from './CanvasControls'
 import { CanvasDisplay } from './CanvasDisplay'
 import { useStateTogether, useStateTogetherWithPerUserValues, useConnectedUsers } from 'react-together'
 import { TOOL_TYPES } from './types'
-import { v4 as uuidv4 } from 'uuid';
-import { UserConfigModal } from './UserConfigModal'
+// import { v4 as uuidv4 } from 'uuid';
+// import { UserConfigModal } from './UserConfigModal'
 import { loadCanvasState } from './canvas-states';
 import { handleStrokeUpdate, handleStateSave } from './canvasStateManager';
 import { addStroke } from './addStroke';
@@ -31,6 +31,8 @@ export default function CollaborativeCanvas({ uuid }) {
 
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [isReady, setIsReady] = useState(false)
+
+  const myUserId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
   const hasLoaded = useRef(false);
 
@@ -69,29 +71,6 @@ export default function CollaborativeCanvas({ uuid }) {
       }
     }
   }, [connectedUsers, userConfig.userId, isReady]);
-
-
-  // const handleConfigSubmit = ({ username, limitUserSpace }) => {
-  //   const isFirstUser = connectedUsers.length === 1;
-  //   const currentUser = connectedUsers.find(user => user.isYou);
-
-  //   // Set user-specific config
-  //   setUserConfig({
-  //     userId: currentUser?.userId || uuidv4(),
-  //     userName: username,
-  //     isHost: isFirstUser,
-  //     squares: []
-  //   });
-
-  //   // If user is host, set the global canvas settings
-  //   if (isFirstUser) {
-  //     setCanvasSettings({
-  //       userSpaceLimited: limitUserSpace
-  //     });
-  //   }
-
-  //   setShowConfigModal(false);
-  // };
 
   // Simplified initial state loading
   useEffect(() => {
@@ -205,7 +184,7 @@ export default function CollaborativeCanvas({ uuid }) {
         {/* Desktop view - shown to the right */}
         <div className="hidden md:block absolute right-8 top-1/2 -translate-y-1/2">
           <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-2 bg-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-full ${
+            <div className={`flex items-center gap-2 bg-secondary/80 backdrop-blur-sm pl-3 pr-10 mr-6 mt-3 py-1.5 rounded-full ${
               userCountChanged ? 'animate-pop' : ''
             }`}>
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -219,11 +198,6 @@ export default function CollaborativeCanvas({ uuid }) {
       </div>
 
       <div className="pr-8 pl-8 ml-10 mr-7 scrollbar-hide">
-        {/* Show ShareButton below status on mobile */}
-        <div className="md:hidden flex justify-end mb-4">
-          <ShareButton url={`${window.location.href}`} />
-        </div>
-
         <CanvasDisplay
           canvasRef={canvasRef}
           strokes={myStrokes}
@@ -231,6 +205,7 @@ export default function CollaborativeCanvas({ uuid }) {
           color={color}
           brushSize={currentSize}
           addStroke={handleAddStroke}
+          userId={myUserId}
         />
       </div>
 

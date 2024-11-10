@@ -8,11 +8,16 @@
   animation: pop 0.3s ease-in-out;
 }
 
+.scrollbar-hide {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
 }
 
 .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
