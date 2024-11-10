@@ -12,6 +12,12 @@ import {
 import { Share, Copy, Check } from "lucide-react";
 import { useState, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 
 /**
  * ShareButton Component
@@ -57,45 +63,44 @@ const ShareButton = ({ url }) => {
         </Button>
       </DialogTrigger>
 
-      {/* Responsive dialog content */}
-      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-md md:max-w-lg lg:max-w-xl p-3 sm:p-4 md:p-6">
-        <DialogHeader>
-          <DialogTitle className="text-base sm:text-lg md:text-xl lg:text-2xl text-center">
-            Share via QR Code
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[90vw] max-w-md border bg-background p-0 shadow-lg duration-200">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-center">Share via QR Code</CardTitle>
+          </CardHeader>
 
-        <div className="flex flex-col items-center gap-3 sm:gap-4 md:gap-6">
-          {/* Responsive QR Code container */}
-          <div className="bg-white/50 backdrop-blur-sm p-3 sm:p-4 md:p-6 lg:p-8 rounded-xl border shadow-lg w-full max-w-[240px] sm:max-w-[280px] md:max-w-[320px] lg:max-w-[360px] mx-auto">
-            <QRCodeSVG
-              value={sharingUrl}
-              size={256}
-              className="h-auto w-full"
-            />
-          </div>
+          <CardContent className="space-y-6">
+            {/* QR Code container */}
+            <div className="bg-white rounded-lg shadow-lg p-6 mx-auto">
+              <QRCodeSVG
+                value={sharingUrl}
+                size={256}
+                className="h-auto w-full"
+              />
+            </div>
 
-          {/* Full-width button on mobile, auto on larger screens */}
-          <Button
-            variant={copied ? "success" : "outline"}
-            className={`w-full sm:w-auto flex items-center justify-center gap-2 min-h-[40px] sm:min-h-[44px] ${
-              copied ? "bg-green-500 hover:bg-green-600 text-white" : "text-foreground"
-            }`}
-            onClick={handleCopy}
-          >
-            {copied ? (
-              <>
-                <Check className="h-4 w-4 md:h-5 md:w-5" />
-                <span className="text-sm md:text-base">Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="h-4 w-4 md:h-5 md:w-5" />
-                <span className="text-sm md:text-base">Copy Link</span>
-              </>
-            )}
-          </Button>
-        </div>
+            {/* Copy button */}
+            <Button
+              variant={copied ? "success" : "outline"}
+              className={`w-full flex items-center justify-center gap-2 ${
+                copied ? "bg-green-500 hover:bg-green-600 text-white" : "text-foreground"
+              }`}
+              onClick={handleCopy}
+            >
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4 md:h-5 md:w-5" />
+                  <span className="text-sm md:text-base">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4 md:h-5 md:w-5" />
+                  <span className="text-sm md:text-base">Copy Link</span>
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
       </DialogContent>
     </Dialog>
   );
