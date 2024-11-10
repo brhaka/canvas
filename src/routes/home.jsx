@@ -23,19 +23,44 @@ export default function Home() {
     // Add resize listener
     window.addEventListener('resize', resizeCanvas);
 
-    // Create cursors with random starting positions
-    const cursors = Array.from({ length: 1000 }, (_, index) => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      lastX: null, // Store last position for line drawing
-      lastY: null,
-      hue: index * 36,
-      angle: Math.random() * Math.PI * 2,
-      speed: 1 + Math.random() * 2,
-      changeDirection: () => {
-        return Math.random() * 0.2 - 0.1;
+    // Helper function to generate truly unique colors
+    const generateUniqueColors = (count) => {
+      const goldenRatio = 0.618033988749895;
+      const colors = [];
+      let hue = Math.random();
+
+      for (let i = 0; i < count; i++) {
+        hue += goldenRatio;
+        hue %= 1;
+
+        // Convert to HSL color space
+        const color = {
+          hue: hue * 360,
+          saturation: 70 + Math.random() * 20, // 70-90%
+          lightness: 65 + Math.random() * 15,  // 65-80%
+        };
+        colors.push(color);
       }
-    }));
+
+      return colors;
+    };
+
+    // Create cursors with unique colors
+    const uniqueColors = generateUniqueColors(1000);
+    const cursors = Array.from({ length: 1000 }, (_, index) => {
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        lastX: null,
+        lastY: null,
+        color: uniqueColors[index],
+        angle: Math.random() * Math.PI * 2,
+        speed: 1 + Math.random() * 2,
+        changeDirection: () => {
+          return Math.random() * 0.2 - 0.1;
+        }
+      };
+    });
 
     const animate = () => {
       // Slower fade effect
@@ -71,7 +96,7 @@ export default function Home() {
           ctx.beginPath();
           ctx.moveTo(cursor.lastX, cursor.lastY);
           ctx.lineTo(cursor.x, cursor.y);
-          ctx.strokeStyle = `hsla(${cursor.hue}, 70%, 80%, 0.6)`;
+          ctx.strokeStyle = `hsla(${cursor.color.hue}, ${cursor.color.saturation}%, ${cursor.color.lightness}%, 0.6)`;
           ctx.lineWidth = 2;
           ctx.stroke();
         }
@@ -79,7 +104,7 @@ export default function Home() {
         // Draw cursor
         ctx.beginPath();
         ctx.arc(cursor.x, cursor.y, 3, 0, Math.PI * 2);
-        ctx.fillStyle = `hsl(${cursor.hue}, 70%, 80%)`;
+        ctx.fillStyle = `hsl(${cursor.color.hue}, ${cursor.color.saturation}%, ${cursor.color.lightness}%)`;
         ctx.fill();
 
         // Optional: Draw connections between nearby cursors
@@ -91,7 +116,7 @@ export default function Home() {
             ctx.beginPath();
             ctx.moveTo(cursor.x, cursor.y);
             ctx.lineTo(otherCursor.x, otherCursor.y);
-            ctx.strokeStyle = `hsla(${cursor.hue}, 70%, 80%, 0.1)`;
+            ctx.strokeStyle = `hsla(${cursor.color.hue}, ${cursor.color.saturation}%, ${cursor.color.lightness}%, 0.1)`;
             ctx.lineWidth = 1;
             ctx.stroke();
           }
