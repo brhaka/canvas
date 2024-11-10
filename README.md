@@ -2,7 +2,7 @@
 
 ## Technical challenges we faced regarding ReactTogether
 
-* We faced a problem where some messages (brush strokes) would be lost. That was happening when a second message was sent before the state was updated to contain the first message. That meant that the second message would include `state + second message` instead of `state + first message + second message`.
+* We faced a problem where some messages (brush strokes) would be lost. That was happening when a second message was sent before the state was updated to contain the first message. That meant that the second message would include `state + second message` instead of `state + first message + second message`. Afonso informed us that this is currently a limitation of react-together.
 
     While trying to solve this, we realised we needed to know when the state was updated for everyone, so we changed the source code of react-together to add a callback and also thought of using Croquet directly and creating a custom model.
     At the end, we managed to solve this using exclusively react-together by using a local state queue. Since all states, ours and other users', are updated when a new message is sent by someone, we can use a local queue to store messages while the previous states are being updated. We know when they are all updated, or at least should be, when our local state is updated.
